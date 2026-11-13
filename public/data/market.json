@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-13T15:40:25Z",
+  "asOf": "2026-11-13T16:25:50Z",
   "refreshedBy": "agent-mcp",
   "accountMasked": "••••0788",
-  "sourceNote": "RH MCP bake · desk polls /api/book (live) + /data/market.json; agents ingest book without republish",
+  "sourceNote": "RH MCP bake · option sold · cash/BP $256.55 · options $0 · desk still needs ingest secret for auto-refresh",
   "degraded": false,
   "portfolio": {
-    "totalValue": 381.18,
-    "equityValue": 118.58,
-    "optionsValue": 28,
-    "cash": 234.6,
-    "buyingPower": 234.6,
+    "totalValue": 375.62,
+    "equityValue": 119.07,
+    "optionsValue": 0,
+    "cash": 256.55,
+    "buyingPower": 256.55,
     "accountMasked": "••••0788"
   },
   "indices": [
@@ -43,9 +43,9 @@
     {
       "symbol": "NVDA",
       "name": "NVIDIA",
-      "price": 159.17,
+      "price": 159.765,
       "prevClose": 166.19,
-      "changePct": -4.22,
+      "changePct": -3.87,
       "source": "rh",
       "note": "Holding"
     },
@@ -100,27 +100,27 @@
     {
       "symbol": "SOXL",
       "name": "Direxion Semi 3x",
-      "price": 53.2,
+      "price": 54.14,
       "prevClose": 65.53,
-      "changePct": -18.82,
+      "changePct": -17.38,
       "source": "rh",
       "note": "Position · live book"
     },
     {
       "symbol": "SCHD",
       "name": "Schwab Div",
-      "price": 35.95,
+      "price": 35.94,
       "prevClose": 35.93,
-      "changePct": 0.06,
+      "changePct": 0.03,
       "source": "rh",
       "note": "Position"
     },
     {
       "symbol": "NVDW",
       "name": "Roundhill NVDA Weekly",
-      "price": 22.9726,
+      "price": 22.84,
       "prevClose": 24.17,
-      "changePct": -4.95,
+      "changePct": -5.5,
       "source": "rh",
       "note": "Position"
     },
@@ -204,37 +204,37 @@
       "symbol": "NVDA",
       "qty": 0.090997,
       "avgCost": 164.84,
-      "mark": 159.17,
-      "value": 14.48,
-      "pnl": -0.52,
-      "pnlPct": -3.47
+      "mark": 159.765,
+      "value": 14.54,
+      "pnl": -0.46,
+      "pnlPct": -3.07
     },
     {
       "symbol": "SOXL",
       "qty": 0.82567,
       "avgCost": 44.95,
-      "mark": 53.2,
-      "value": 43.93,
-      "pnl": 6.82,
-      "pnlPct": 18.38
+      "mark": 54.14,
+      "value": 44.7,
+      "pnl": 7.59,
+      "pnlPct": 20.45
     },
     {
       "symbol": "SCHD",
       "qty": 1,
       "avgCost": 35.91,
-      "mark": 35.95,
-      "value": 35.95,
-      "pnl": 0.04,
-      "pnlPct": 0.11
+      "mark": 35.94,
+      "value": 35.94,
+      "pnl": 0.03,
+      "pnlPct": 0.08
     },
     {
       "symbol": "NVDW",
       "qty": 1.041883,
       "avgCost": 24,
-      "mark": 22.9726,
-      "value": 23.93,
-      "pnl": -1.08,
-      "pnlPct": -4.32
+      "mark": 22.84,
+      "value": 23.8,
+      "pnl": -1.21,
+      "pnlPct": -4.84
     }
   ],
   "watchlist": {
@@ -252,14 +252,10 @@
     ]
   },
   "newsCrawl": [
-    "RH · MCP ••••0788 equity $118.58 · options $28 · cash/BP $234.60",
-    "Live book · as of 2026-11-13T15:40:25Z · SOXL qty 0.8257 @ $53.20",
-    "Crypto Pulse · BTC −0.33% · ETH −0.45% vs prior open",
-    "Scanner Watch · SOXL −18.8% session · semi levered stress",
-    "Desk Chief · focus NVDA / SOXL / TSLA · human confirms every ticket",
-    "Watch · Randy Superstar list XOP ARKW BILL ALL on board",
-    "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place",
-    "Execution Prep · fast path · hot seat one-tap · confirm every order",
-    "Feed · /api/book live ingest · no human republish required for positions"
+    "RH · MCP ••••0788 equity $119.07 · options $0 · cash/BP $256.55",
+    "Book sync · as of 2026-11-13T16:25:50Z · option sold · open options cleared",
+    "SOXL qty 0.8257 still open · equities unchanged",
+    "Feed · /api/book needs BOOK_INGEST_SECRET + CURSOR_APP_TOKEN for auto push",
+    "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place"
   ]
 }

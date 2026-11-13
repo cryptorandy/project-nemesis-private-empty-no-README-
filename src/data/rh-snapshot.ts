@@ -5,7 +5,7 @@
  * Agents refresh `public/data/market.json` (+ this file) via MCP; the UI polls
  * that JSON and falls back here if the poll fails. No place-order calls.
  *
- * Captured: 2026-11-13T15:40:25Z via get_equity_quotes / get_crypto_quotes /
+ * Captured: 2026-11-13T16:25:50Z via get_equity_quotes / get_crypto_quotes /
  * get_portfolio / get_equity_positions / get_watchlist_items
  * Account: MCP ••••0788 (agentic)
  *
@@ -41,15 +41,15 @@ export type RhPortfolio = {
   accountMasked: string
 }
 
-export const RH_AS_OF = "2026-11-13T15:40:25Z"
-export const RH_SOURCE_NOTE = "RH MCP bake · desk polls /api/book (live) + /data/market.json; agents ingest book without republish"
+export const RH_AS_OF = "2026-11-13T16:25:50Z"
+export const RH_SOURCE_NOTE = "RH MCP bake · option sold · cash/BP $256.55 · options $0 · desk still needs ingest secret for auto-refresh"
 
 export const RH_PORTFOLIO: RhPortfolio = {
-  "totalValue": 381.18,
-  "equityValue": 118.58,
-  "optionsValue": 28,
-  "cash": 234.6,
-  "buyingPower": 234.6,
+  "totalValue": 375.62,
+  "equityValue": 119.07,
+  "optionsValue": 0,
+  "cash": 256.55,
+  "buyingPower": 256.55,
   "accountMasked": "••••0788"
 }
 
@@ -60,16 +60,16 @@ export const RH_INDICES: RhQuote[] = [
 ]
 
 export const RH_BOARD: RhQuote[] = [
-  { symbol: "NVDA", name: "NVIDIA", price: 159.17, prevClose: 166.19, changePct: -4.22, source: 'rh', note: "Holding" },
+  { symbol: "NVDA", name: "NVIDIA", price: 159.765, prevClose: 166.19, changePct: -3.87, source: 'rh', note: "Holding" },
   { symbol: "AAPL", name: "Apple", price: 358.595, prevClose: 354.88, changePct: 1.05, source: 'rh' },
   { symbol: "TSLA", name: "Tesla", price: 387.52, prevClose: 397.45, changePct: -2.5, source: 'rh' },
   { symbol: "AMD", name: "AMD", price: 526.38, prevClose: 585.3, changePct: -10.07, source: 'rh' },
   { symbol: "MSFT", name: "Microsoft", price: 522.34, prevClose: 523, changePct: -0.13, source: 'rh' },
   { symbol: "AMZN", name: "Amazon", price: 264.935, prevClose: 267.44, changePct: -0.94, source: 'rh' },
   { symbol: "META", name: "Meta", price: 626.53, prevClose: 623.61, changePct: 0.47, source: 'rh' },
-  { symbol: "SOXL", name: "Direxion Semi 3x", price: 53.2, prevClose: 65.53, changePct: -18.82, source: 'rh', note: "Position · live book" },
-  { symbol: "SCHD", name: "Schwab Div", price: 35.95, prevClose: 35.93, changePct: 0.06, source: 'rh', note: "Position" },
-  { symbol: "NVDW", name: "Roundhill NVDA Weekly", price: 22.9726, prevClose: 24.17, changePct: -4.95, source: 'rh', note: "Position" },
+  { symbol: "SOXL", name: "Direxion Semi 3x", price: 54.14, prevClose: 65.53, changePct: -17.38, source: 'rh', note: "Position · live book" },
+  { symbol: "SCHD", name: "Schwab Div", price: 35.94, prevClose: 35.93, changePct: 0.03, source: 'rh', note: "Position" },
+  { symbol: "NVDW", name: "Roundhill NVDA Weekly", price: 22.84, prevClose: 24.17, changePct: -5.5, source: 'rh', note: "Position" },
   { symbol: "XOP", name: "Oil & Gas Explore", price: 182.98, prevClose: 183.11, changePct: -0.07, source: 'rh', note: "Watch · Superstar" },
   { symbol: "ARKW", name: "ARK Next Gen Internet", price: 141.61, prevClose: 143.93, changePct: -1.61, source: 'rh', note: "Watch · Superstar" },
   { symbol: "BILL", name: "Bill.com", price: 53.52, prevClose: 54, changePct: -0.89, source: 'rh', note: "Watch · Superstar" },
@@ -88,37 +88,37 @@ export const RH_POSITIONS: RhPosition[] = [
     symbol: "NVDA",
     qty: 0.090997,
     avgCost: 164.84,
-    mark: 159.17,
-    value: 14.48,
-    pnl: -0.52,
-    pnlPct: -3.47,
+    mark: 159.765,
+    value: 14.54,
+    pnl: -0.46,
+    pnlPct: -3.07,
   },
   {
     symbol: "SOXL",
     qty: 0.82567,
     avgCost: 44.95,
-    mark: 53.2,
-    value: 43.93,
-    pnl: 6.82,
-    pnlPct: 18.38,
+    mark: 54.14,
+    value: 44.7,
+    pnl: 7.59,
+    pnlPct: 20.45,
   },
   {
     symbol: "SCHD",
     qty: 1,
     avgCost: 35.91,
-    mark: 35.95,
-    value: 35.95,
-    pnl: 0.04,
-    pnlPct: 0.11,
+    mark: 35.94,
+    value: 35.94,
+    pnl: 0.03,
+    pnlPct: 0.08,
   },
   {
     symbol: "NVDW",
     qty: 1.041883,
     avgCost: 24,
-    mark: 22.9726,
-    value: 23.93,
-    pnl: -1.08,
-    pnlPct: -4.32,
+    mark: 22.84,
+    value: 23.8,
+    pnl: -1.21,
+    pnlPct: -4.84,
   },
 ]
 
@@ -147,13 +147,9 @@ export const OPTIONS_HEAT_STUB = [
 ]
 
 export const NEWS_CRAWL = [
-  "RH · MCP ••••0788 equity $118.58 · options $28 · cash/BP $234.60",
-  "Live book · as of 2026-11-13T15:40:25Z · SOXL qty 0.8257 @ $53.20",
-  "Crypto Pulse · BTC −0.33% · ETH −0.45% vs prior open",
-  "Scanner Watch · SOXL −18.8% session · semi levered stress",
-  "Desk Chief · focus NVDA / SOXL / TSLA · human confirms every ticket",
-  "Watch · Randy Superstar list XOP ARKW BILL ALL on board",
-  "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place",
-  "Execution Prep · fast path · hot seat one-tap · confirm every order",
-  "Feed · /api/book live ingest · no human republish required for positions"
+  "RH · MCP ••••0788 equity $119.07 · options $0 · cash/BP $256.55",
+  "Book sync · as of 2026-11-13T16:25:50Z · option sold · open options cleared",
+  "SOXL qty 0.8257 still open · equities unchanged",
+  "Feed · /api/book needs BOOK_INGEST_SECRET + CURSOR_APP_TOKEN for auto push",
+  "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place"
 ]
