@@ -1,0 +1,185 @@
+import { useState } from 'react'
+import './App.css'
+import { AgentRail } from './components/AgentRail'
+import { ConfirmGate } from './components/ConfirmGate'
+import { Hero } from './components/Hero'
+import {
+  AuditSurface,
+  ResearchSurface,
+  RiskSurface,
+  WatchSurface,
+} from './components/surfaces'
+import { TicketRail } from './components/TicketRail'
+import {
+  AGENTS,
+  INITIAL_AUDIT,
+  INITIAL_TICKET,
+  nowTime,
+} from './data/mock'
+import type {
+  AuditEntry,
+  Surface,
+  TicketDraft,
+  TicketPhase,
+} from './types'
+
+const SURFACES: { id: Surface; label: string }[] = [
+  { id: 'watch', label: 'Watch' },
+  { id: 'research', label: 'Research' },
+  { id: 'risk', label: 'Risk' },
+  { id: 'audit', label: 'Audit' },
+]
+
+function App() {
+  const [entered, setEntered] = useState(false)
+  const [surface, setSurface] = useState<Surface>('watch')
+  const [killed, setKilled] = useState(false)
+  const [ticket, setTicket] = useState<TicketDraft>(INITIAL_TICKET)
+  const [phase, setPhase] = useState<TicketPhase>('draft')
+  const [gateOpen, setGateOpen] = useState(false)
+  const [audit, setAudit] = useState<AuditEntry[]>(INITIAL_AUDIT)
+
+  function pushAudit(
+    entity: string,
+    action: AuditEntry['action'],
+    details: string,
+  ) {
+    setAudit((prev) => [
+      {
+        id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        time: nowTime(),
+        entity,
+        action,
+        details,
+      },
+      ...prev,
+    ])
+  }
+
+  function toggleKill() {
+    setKilled((prev) => {
+      const next = !prev
+      pushAudit(
+        'Randy',
+        next ? 'kill' : 'resume',
+        next
+          ? 'Kill switch engaged — agents paused, confirm disabled'
+          : 'Desk resumed — confirm unlocked',
+      )
+      if (next) setGateOpen(false)
+      return next
+    })
+  }
+
+  function enterDesk(withKill = false) {
+    setEntered(true)
+    if (withKill && !killed) toggleKill()
+  }
+
+  function patchTicket(patch: Partial<TicketDraft>) {
+    setTicket((t) => ({ ...t, ...patch }))
+    if (phase === 'previewed') setPhase('draft')
+  }
+
+  function preview() {
+    setPhase('previewed')
+    pushAudit(
+      'Execution Prep',
+      'preview',
+      `Mock preview for ${ticket.symbol} (no Robinhood place)`,
+    )
+  }
+
+  function confirmMock() {
+    setPhase('confirmed')
+    setGateOpen(false)
+    pushAudit(
+      'Randy',
+      'confirm-mock',
+      `Human confirmed mock ticket ${ticket.symbol} — NO real order placed`,
+    )
+  }
+
+  function resetDraft() {
+    setTicket(INITIAL_TICKET)
+    setPhase('draft')
+  }
+
+  if (!entered) {
+    return (
+      <Hero
+        onEnter={() => enterDesk(false)}
+        onKillFromLanding={() => enterDesk(true)}
+      />
+    )
+  }
+
+  return (
+    <div className="desk">
+      <header className="desk-header">
+        <div className="brand-lockup">
+          <div className="mark" aria-hidden>
+            N
+          </div>
+          <div className="brand-text">
+            <span className="brand-name">Project Nemesis</span>
+            <span className="brand-sub">Trading desk</span>
+          </div>
+        </div>
+        <nav className="nav" aria-label="Desk surfaces">
+          {SURFACES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`nav-btn ${surface === s.id ? 'active' : ''}`}
+              onClick={() => setSurface(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </nav>
+        <button
+          type="button"
+          className={`kill-header ${killed ? 'engaged' : ''}`}
+          onClick={toggleKill}
+        >
+          Kill switch
+        </button>
+      </header>
+
+      <AgentRail agents={AGENTS} killed={killed} />
+
+      <div className="desk-body">
+        {surface === 'watch' && <WatchSurface />}
+        {surface === 'research' && <ResearchSurface />}
+        {surface === 'risk' && (
+          <RiskSurface killed={killed} onToggleKill={toggleKill} />
+        )}
+        {surface === 'audit' && <AuditSurface entries={audit} />}
+
+        <TicketRail
+          ticket={ticket}
+          phase={phase}
+          killed={killed}
+          onChange={patchTicket}
+          onPreview={preview}
+          onOpenGate={() => setGateOpen(true)}
+          onCancel={resetDraft}
+          onNewDraft={resetDraft}
+        />
+      </div>
+
+      {gateOpen && (
+        <ConfirmGate
+          ticket={ticket}
+          killed={killed}
+          previewed={phase === 'previewed' || phase === 'confirmed'}
+          onBack={() => setGateOpen(false)}
+          onConfirm={confirmMock}
+        />
+      )}
+    </div>
+  )
+}
+
+export default App
