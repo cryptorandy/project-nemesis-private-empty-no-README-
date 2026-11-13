@@ -6,6 +6,7 @@ import type {
 } from '../types'
 import type { QuoteRow } from '../types'
 import type { MarketPosition } from '../data/market-types'
+import type { OptionBuyIdea } from './optionsScanner'
 
 export type AgentId =
   | 'chief'
@@ -31,8 +32,10 @@ export type AgentBrief = {
 
 export type StagedTicket = TicketDraft & {
   reason: string
-  stagedBy: 'exec'
+  stagedBy: 'exec' | 'flow'
   stagedAt: string
+  /** Optional link back to ranked options idea */
+  ideaId?: string
 }
 
 export type SwarmMarketView = {
@@ -50,6 +53,7 @@ export type LoopResult = {
   activity: ActivityTick
   stagedTicket?: StagedTicket
   riskFlags?: string[]
+  optionIdeas?: OptionBuyIdea[]
 }
 
 export type DeskSwarmState = {
@@ -59,6 +63,7 @@ export type DeskSwarmState = {
   activity: ActivityTick[]
   riskFlags: string[]
   stagedTicket: StagedTicket | null
+  optionIdeas: OptionBuyIdea[]
   newsLine: string
   loopCount: number
 }

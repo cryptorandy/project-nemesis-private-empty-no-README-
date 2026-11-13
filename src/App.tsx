@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import './App.css'
+import {
+  ideaToStagedFields,
+  rankOptionBuyIdeas,
+  type OptionBuyIdea,
+} from './agents/optionsScanner'
 import { useAgentSwarm } from './agents/useAgentSwarm'
 import type { StagedTicket } from './agents/types'
 import { AgentRail } from './components/AgentRail'
@@ -33,7 +38,8 @@ const SURFACES: { id: Surface; label: string }[] = [
   { id: 'audit', label: 'Audit' },
 ]
 
-function lookupMark(symbol: string): number | null {
+function lookupMark(symbol: string, ticket?: TicketDraft): number | null {
+  if (ticket?.asset === 'Option' && ticket.limit > 0) return ticket.limit
   const eq = RH_BOARD.find((q) => q.symbol === symbol)
   if (eq) return eq.price
   const crypto = RH_CRYPTO.find((q) => q.symbol === symbol)
@@ -53,9 +59,12 @@ function App() {
   )
   const [focusedAgent, setFocusedAgent] = useState<string | null>(null)
   const [stagedNote, setStagedNote] = useState<string | null>(null)
+  const [optionIdeas, setOptionIdeas] = useState<OptionBuyIdea[]>(() =>
+    rankOptionBuyIdeas(),
+  )
 
   const live = useLiveDesk(killed)
-  const liveMark = lookupMark(ticket.symbol)
+  const liveMark = lookupMark(ticket.symbol, ticket)
   const risk = useMemo(
     () => runRiskSoftChecks(ticket, liveMark ?? undefined),
     [ticket, liveMark],
@@ -68,8 +77,8 @@ function App() {
     [],
   )
 
-  const onStageTicket = useCallback(
-    (staged: StagedTicket) => {
+  const applyStaged = useCallback(
+    (staged: StagedTicket, entity: string) => {
       setTicket({
         asset: staged.asset,
         side: staged.side,
@@ -86,17 +95,41 @@ function App() {
       setPreview(null)
       setStagedNote(staged.reason)
       pushAudit(
-        'Execution Prep',
+        entity,
         'brief',
-        `Staged ${staged.symbol} ${staged.qty}@${staged.limit} — ${staged.reason} (no place)`,
+        `Staged ${staged.asset} ${staged.symbol} ${staged.qty}@${staged.limit} — ${staged.reason.slice(0, 120)} (no place)`,
       )
     },
     [pushAudit],
   )
 
+  const onStageTicket = useCallback(
+    (staged: StagedTicket) => {
+      applyStaged(staged, 'Execution Prep')
+    },
+    [applyStaged],
+  )
+
+  const onStageIdea = useCallback(
+    (idea: OptionBuyIdea) => {
+      const fields = ideaToStagedFields(idea)
+      applyStaged(
+        {
+          ...fields,
+          stagedBy: 'flow',
+          stagedAt: new Date().toISOString(),
+          ideaId: idea.id,
+        },
+        'Options Flow',
+      )
+      setSurface('board')
+    },
+    [applyStaged],
+  )
+
   const onSwarmAudit = useCallback(
     (entity: string, action: 'brief' | 'scan' | 'risk', details: string) => {
-      if (action === 'risk' || /escalate|soft block|prints|Staged/i.test(details)) {
+      if (action === 'risk' || /escalate|soft block|prints|Staged|BUY/i.test(details)) {
         pushAudit(entity, action, details)
       }
     },
@@ -109,8 +142,11 @@ function App() {
     crypto: live.crypto,
     positions: live.positions,
     onStageTicket,
+    onOptionIdeas: setOptionIdeas,
     onAudit: onSwarmAudit,
   })
+
+  const boardIdeas = optionIdeas.length ? optionIdeas : swarm.optionIdeas
 
   function toggleKill() {
     setKilled((prev) => {
@@ -172,7 +208,11 @@ function App() {
       ticket.order === 'Market'
         ? `MKT~$${(liveMark ?? report.mark).toFixed(2)}`
         : `$${ticket.limit.toFixed(2)}`
-    const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol} ${ticket.asset} ${ticket.order} ${px} TIF ${ticket.tif}`
+    const optBits =
+      ticket.asset === 'Option'
+        ? ` ${ticket.optionRight ?? 'Call'} ${ticket.optionStrike ?? '?'} ${ticket.optionExpiry ?? ''}`
+        : ''
+    const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits} ${ticket.asset} ${ticket.order} ${px} TIF ${ticket.tif}`
     const nextPreview: TicketPreview = {
       id,
       at: new Date().toISOString(),
@@ -289,6 +329,7 @@ function App() {
             agents={swarm.agents}
             briefs={swarm.briefs}
             deskBrief={swarm.deskBrief}
+            optionIdeas={boardIdeas}
             tape={live.tape}
             newsLine={swarm.newsLine || live.newsLine}
             clock={live.clock}
@@ -303,10 +344,15 @@ function App() {
               setFocusedAgent((prev) => (prev === id ? null : id))
             }
             onPickSymbol={pickSymbol}
+            onStageIdea={onStageIdea}
           />
         )}
         {surface === 'research' && (
-          <ResearchSurface deskBrief={swarm.deskBrief} briefs={swarm.briefs} />
+          <ResearchSurface
+            deskBrief={swarm.deskBrief}
+            briefs={swarm.briefs}
+            optionIdeas={boardIdeas}
+          />
         )}
         {surface === 'risk' && (
           <RiskSurface

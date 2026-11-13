@@ -1,3 +1,4 @@
+import type { OptionBuyIdea } from '../agents/optionsScanner'
 import type { AgentBrief, AgentId } from '../agents/types'
 import { metaById } from '../agents/roster'
 import { SIZE_LIMITS } from '../data/mock'
@@ -8,9 +9,14 @@ import type { AuditEntry, TicketDraft } from '../types'
 type ResearchProps = {
   deskBrief: AgentBrief | null
   briefs: Partial<Record<AgentId, AgentBrief>>
+  optionIdeas: OptionBuyIdea[]
 }
 
-export function ResearchSurface({ deskBrief, briefs }: ResearchProps) {
+export function ResearchSurface({
+  deskBrief,
+  briefs,
+  optionIdeas,
+}: ResearchProps) {
   const specialists = (
     Object.entries(briefs) as [AgentId, AgentBrief][]
   ).filter(([id]) => id !== 'chief')
@@ -23,7 +29,7 @@ export function ResearchSurface({ deskBrief, briefs }: ResearchProps) {
       </h1>
       <p className="surface-sub">
         Desk Chief merge + specialist briefs from live agent loops (RH MCP
-        context + heuristics).
+        context + heuristics). Options buys require Δ/Γ/Θ/ν.
       </p>
       <div className="research-card">
         <div className="research-focus">
@@ -45,6 +51,26 @@ export function ResearchSurface({ deskBrief, briefs }: ResearchProps) {
             </li>
           ))}
         </ul>
+        {optionIdeas.length > 0 && (
+          <>
+            <h3 className="research-opt-head">Ranked option buys</h3>
+            <ul>
+              {optionIdeas.slice(0, 4).map((idea) => (
+                <li key={idea.id}>
+                  <strong>
+                    #{idea.rank} {idea.underlying} {idea.right} {idea.strike}
+                  </strong>{' '}
+                  — Δ {idea.greeks.delta.toFixed(2)} Γ{' '}
+                  {idea.greeks.gamma.toFixed(3)} Θ {idea.greeks.theta.toFixed(2)}{' '}
+                  ν {idea.greeks.vega.toFixed(3)}
+                  {idea.greeks.iv != null
+                    ? ` IV ${(idea.greeks.iv * 100).toFixed(0)}%`
+                    : ''}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <p className="panel-foot">
           Agent context as-of loops · agents never place orders
         </p>

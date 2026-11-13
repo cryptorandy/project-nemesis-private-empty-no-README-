@@ -21,16 +21,17 @@ npm run preview
 ## What’s in this build
 
 - Brand-first hero (orbit atmosphere does **not** steal clicks)
-- Dense Board: indices · tape · P&L · quotes · positions · crypto · options heat stub · agent swarm · activity · Chief brief bar
+- Dense Board: indices · tape · P&L · quotes · positions · crypto · **ranked options buys (Greeks)** · agent swarm · activity · Chief brief bar
 - **Layer 1 market truth:** agents bake RH MCP into `public/data/market.json`; UI polls it; TS fallback in `src/data/rh-snapshot.ts`
 - Clear **as of** timestamps + graceful degrade when poll fails
 - **Layer 2 real agent loops** (Desk Chief → Execution Prep) writing briefs from RH MCP context + heuristics
+- **Options scanner:** RH chains/quotes bake with **Δ/Γ/Θ/ν + IV** hard-required; ranked buys; one-tap Stage
 - Activity wall shows real loop outputs (not canned status theater)
 - Execution Prep **stages** draft tickets only — never places
 - Research / Risk / Audit + Ticket rail
 - Kill switch (pauses all loops + disables confirm)
-- Pro ticket builder (equity first; option/crypto stubs) → mock preview → hard confirm gate → mock place
-- Risk soft-checks (concentration, buying power, size caps) before confirm
+- Pro ticket builder (equity + options; crypto stub) → mock preview → hard confirm gate → mock place
+- Risk soft-checks: **10% BP / trade**, **5% day loss**, **watchlist-only** on MCP ••••0788
 - Immutable append-only audit (preview / risk-check / confirm / place-mock / kill)
 
 See [docs/live-vs-mock.md](docs/live-vs-mock.md).
@@ -54,7 +55,7 @@ node scripts/refresh-market.mjs
 
 ## Safety
 
-Orders are **never** placed by agents or this UI. Preview / confirm / place are mock-only (`ALLOW_LIVE_PLACE=false`). Place runs only through the ConfirmGate path. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json` and swarm context (`src/data/agent-context.ts`) when MCP is reachable, then push/republish.
+Orders are **never** placed by agents or this UI. Options ideas stage only — Randy confirms. Preview / confirm / place are mock-only (`ALLOW_LIVE_PLACE=false`). Place runs only through the ConfirmGate path. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json`, `src/data/options-scan.ts`, and swarm context (`src/data/agent-context.ts`) when MCP is reachable, then push/republish. Keep the published app **private**.
 
 ## Repo note
 

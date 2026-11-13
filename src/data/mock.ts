@@ -22,8 +22,9 @@ export const WATCH = [...RH_BOARD, ...RH_CRYPTO]
 export const INDICES = RH_INDICES
 
 export const SIZE_LIMITS = [
-  { label: 'Max notional / ticket', value: '$5,000' },
-  { label: 'Max % book / name', value: '8%' },
+  { label: 'Max % BP / trade', value: '10%' },
+  { label: 'Max day loss / account', value: '5%' },
+  { label: 'Universe', value: 'Watchlist + holdings' },
   { label: 'Max option contracts', value: '5' },
   { label: 'Crypto notional cap', value: '$2,000' },
 ]

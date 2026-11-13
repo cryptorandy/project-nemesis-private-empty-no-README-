@@ -91,17 +91,21 @@ export function TicketRail({
                 onClick={() => onChange({ asset })}
               >
                 {asset}
-                {asset !== 'Equity' ? ' ·stub' : ''}
+                {asset === 'Crypto' ? ' ·stub' : ''}
               </button>
             ))}
           </div>
         </div>
 
-        {!equity && (
+        {ticket.asset === 'Crypto' && (
           <div className="stub-note">
-            {ticket.asset === 'Option'
-              ? 'Options stub — right/strike/expiry placeholders; same preview → confirm ritual.'
-              : 'Crypto stub — snapshot marks; same preview → confirm ritual.'}
+            Crypto stub — snapshot marks; same preview → confirm ritual.
+          </div>
+        )}
+        {ticket.asset === 'Option' && (
+          <div className="stub-note">
+            Options from FLOW scanner · Greeks on board ideas · confirm still
+            required · never auto-place.
           </div>
         )}
 
@@ -161,39 +165,51 @@ export function TicketRail({
         </div>
 
         {ticket.asset === 'Option' && (
-          <div className="field-row">
-            <div className="field">
-              <label>Right</label>
-              <div className="seg">
-                {(['Call', 'Put'] as const).map((right) => (
-                  <button
-                    key={right}
-                    type="button"
-                    className={
-                      (ticket.optionRight ?? 'Call') === right ? 'on' : ''
-                    }
-                    disabled={confirmed}
-                    onClick={() => onChange({ optionRight: right })}
-                  >
-                    {right}
-                  </button>
-                ))}
+          <>
+            <div className="field-row">
+              <div className="field">
+                <label>Right</label>
+                <div className="seg">
+                  {(['Call', 'Put'] as const).map((right) => (
+                    <button
+                      key={right}
+                      type="button"
+                      className={
+                        (ticket.optionRight ?? 'Call') === right ? 'on' : ''
+                      }
+                      disabled={confirmed}
+                      onClick={() => onChange({ optionRight: right })}
+                    >
+                      {right}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="strike">Strike</label>
+                <input
+                  id="strike"
+                  type="number"
+                  step="0.5"
+                  value={ticket.optionStrike ?? 170}
+                  disabled={confirmed}
+                  onChange={(e) =>
+                    onChange({ optionStrike: Number(e.target.value) || 0 })
+                  }
+                />
               </div>
             </div>
             <div className="field">
-              <label htmlFor="strike">Strike</label>
+              <label htmlFor="expiry">Expiry</label>
               <input
-                id="strike"
-                type="number"
-                step="0.5"
-                value={ticket.optionStrike ?? 170}
+                id="expiry"
+                value={ticket.optionExpiry ?? ''}
+                placeholder="YYYY-MM-DD"
                 disabled={confirmed}
-                onChange={(e) =>
-                  onChange({ optionStrike: Number(e.target.value) || 0 })
-                }
+                onChange={(e) => onChange({ optionExpiry: e.target.value })}
               />
             </div>
-          </div>
+          </>
         )}
 
         <div className="field-row">
