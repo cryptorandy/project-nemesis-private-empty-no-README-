@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AGENTS,
   AGENT_THOUGHTS,
@@ -7,20 +7,27 @@ import {
   nowTime,
 } from '../data/mock'
 import {
-  NEWS_CRAWL,
-  RH_BOARD,
-  RH_CRYPTO,
-  RH_INDICES,
-  RH_POSITIONS,
-  type RhPosition,
-  type RhQuote,
-} from '../data/rh-snapshot'
+  bakedMarketSnapshot,
+  fetchMarketSnapshot,
+  formatAsOfShort,
+} from '../data/load-market'
+import type {
+  FeedStatus,
+  MarketPortfolio,
+  MarketPosition,
+  MarketQuote,
+} from '../data/market-types'
 import type {
   ActivityTick,
   AgentLoopStatus,
   LiveAgentState,
   QuoteRow,
 } from '../types'
+
+/** Poll interval for /data/market.json (hosted bake refresh). */
+const POLL_MS = 12_000
+/** Marks older than this are labeled stale (agent refresh overdue). */
+const STALE_MS = 30 * 60 * 1000
 
 function pickThought(agentId: string, tick: number): string {
   const lines = AGENT_THOUGHTS[agentId] ?? ['Loop idle']
@@ -38,14 +45,14 @@ function seedAgents(): LiveAgentState[] {
   }))
 }
 
-function toRow(q: RhQuote): QuoteRow {
+function toRow(q: MarketQuote): QuoteRow {
   return {
     symbol: q.symbol,
     name: q.name,
     price: q.price,
     changePct: q.changePct,
     note: q.note,
-    source: 'rh',
+    source: q.source === 'mock' ? 'mock' : 'rh',
   }
 }
 
@@ -62,9 +69,9 @@ function jitterQuote(row: QuoteRow, salt: number): QuoteRow {
 }
 
 function jitterPositions(
-  positions: RhPosition[],
+  positions: MarketPosition[],
   board: QuoteRow[],
-): RhPosition[] {
+): MarketPosition[] {
   const bySym = Object.fromEntries(board.map((b) => [b.symbol, b.price]))
   return positions.map((p) => {
     const mark = bySym[p.symbol] ?? p.mark
@@ -76,24 +83,93 @@ function jitterPositions(
   })
 }
 
+function deriveFeedStatus(
+  asOf: string,
+  degraded: boolean,
+  pollOk: boolean | null,
+  lastPollAt: number | null,
+): FeedStatus {
+  if (degraded) return 'degraded'
+  if (pollOk === false && lastPollAt !== null) return 'degraded'
+  const age = Date.now() - new Date(asOf).getTime()
+  if (Number.isFinite(age) && age > STALE_MS) return 'stale'
+  if (pollOk === true) return 'fresh'
+  if (pollOk === null) return 'baked'
+  return 'polling'
+}
+
 /**
- * Continuous mock loops over RH MCP snapshot marks.
- * Hosted app cannot call Robinhood MCP — agents refresh rh-snapshot.ts.
+ * Live / near-live desk marks over RH MCP bake.
+ * Polls /data/market.json; falls back to baked TS; gentle tick between refreshes.
  * Never places orders.
  */
 export function useLiveDesk(killed: boolean) {
+  const seed = bakedMarketSnapshot()
   const [agents, setAgents] = useState<LiveAgentState[]>(seedAgents)
-  const [board, setBoard] = useState<QuoteRow[]>(() => RH_BOARD.map(toRow))
+  const [board, setBoard] = useState<QuoteRow[]>(() => seed.board.map(toRow))
   const [indices, setIndices] = useState<QuoteRow[]>(() =>
-    RH_INDICES.map(toRow),
+    seed.indices.map(toRow),
   )
-  const [crypto, setCrypto] = useState<QuoteRow[]>(() => RH_CRYPTO.map(toRow))
-  const [positions, setPositions] = useState<RhPosition[]>(RH_POSITIONS)
+  const [crypto, setCrypto] = useState<QuoteRow[]>(() =>
+    seed.crypto.map(toRow),
+  )
+  const [positions, setPositions] = useState<MarketPosition[]>(() =>
+    seed.positions.map((p) => ({ ...p })),
+  )
+  const [portfolio, setPortfolio] = useState<MarketPortfolio>({
+    ...seed.portfolio,
+  })
+  const [newsCrawl, setNewsCrawl] = useState<string[]>([...seed.newsCrawl])
+  const [asOf, setAsOf] = useState(seed.asOf)
+  const [sourceNote, setSourceNote] = useState(seed.sourceNote)
+  const [degradedFlag, setDegradedFlag] = useState(seed.degraded)
+  const [pollOk, setPollOk] = useState<boolean | null>(null)
+  const [lastPollAt, setLastPollAt] = useState<number | null>(null)
+  const asOfRef = useRef(seed.asOf)
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({})
   const [activity, setActivity] = useState<ActivityTick[]>(INITIAL_ACTIVITY)
   const [newsIdx, setNewsIdx] = useState(0)
   const [clock, setClock] = useState(nowTime)
   const [tick, setTick] = useState(0)
+
+  // Poll bake JSON (agents refresh file + redeploy/push)
+  useEffect(() => {
+    let cancelled = false
+    const ctrl = new AbortController()
+
+    async function poll() {
+      const snap = await fetchMarketSnapshot(ctrl.signal)
+      if (cancelled) return
+      setLastPollAt(Date.now())
+      if (!snap) {
+        setPollOk(false)
+        return
+      }
+      setPollOk(true)
+      setDegradedFlag(snap.degraded)
+      const prevMs = new Date(asOfRef.current).getTime()
+      const nextMs = new Date(snap.asOf).getTime()
+      if (!Number.isFinite(nextMs) || nextMs < prevMs) return
+
+      asOfRef.current = snap.asOf
+      setAsOf(snap.asOf)
+      setSourceNote(snap.sourceNote)
+      setBoard(snap.board.map(toRow))
+      setIndices(snap.indices.map(toRow))
+      setCrypto(snap.crypto.map(toRow))
+      setPositions(snap.positions.map((p) => ({ ...p })))
+      setPortfolio({ ...snap.portfolio })
+      setNewsCrawl([...snap.newsCrawl])
+    }
+
+    void poll()
+    const id = window.setInterval(() => void poll(), POLL_MS)
+    return () => {
+      cancelled = true
+      ctrl.abort()
+      window.clearInterval(id)
+    }
+  }, [])
 
   useEffect(() => {
     if (killed) {
@@ -107,7 +183,6 @@ export function useLiveDesk(killed: boolean) {
       return
     }
 
-    // High-frequency tape (~1.1s) for TV energy
     const id = window.setInterval(() => {
       setTick((t) => t + 1)
       setClock(nowTime())
@@ -136,7 +211,6 @@ export function useLiveDesk(killed: boolean) {
 
     setBoard((prev) => {
       const next = prev.map((row, i) => {
-        if ((tick + i) % 1 !== 0) return row
         const j = jitterQuote(row, tick + i)
         if (Math.abs(j.price - row.price) > 0.0001) {
           flashes[row.symbol] = Date.now()
@@ -180,12 +254,19 @@ export function useLiveDesk(killed: boolean) {
       ])
     }
 
-    if (tick % 3 === 0) {
-      setNewsIdx((i) => (i + 1) % NEWS_CRAWL.length)
+    if (tick % 3 === 0 && newsCrawl.length) {
+      setNewsIdx((i) => (i + 1) % newsCrawl.length)
     }
-  }, [tick, killed])
+  }, [tick, killed, newsCrawl.length])
 
+  const feedStatus = deriveFeedStatus(
+    asOf,
+    degradedFlag,
+    pollOk,
+    lastPollAt,
+  )
   const tape = [...indices, ...board.slice(0, 8), ...crypto]
+  const asOfShort = formatAsOfShort(asOf)
 
   return {
     agents,
@@ -193,11 +274,17 @@ export function useLiveDesk(killed: boolean) {
     indices,
     crypto,
     positions,
+    portfolio,
     flashKeys,
     activity,
     tape,
-    newsLine: NEWS_CRAWL[newsIdx] ?? NEWS_CRAWL[0],
+    newsLine: newsCrawl[newsIdx] ?? newsCrawl[0] ?? '',
     clock,
     tick,
+    asOf,
+    asOfShort,
+    sourceNote,
+    feedStatus,
+    lastPollAt,
   }
 }

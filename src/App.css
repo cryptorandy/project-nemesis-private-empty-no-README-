@@ -704,6 +704,15 @@
   white-space: nowrap;
 }
 
+.strip-meta.feed-fresh {
+  color: var(--cyan);
+}
+
+.strip-meta.feed-stale,
+.strip-meta.feed-degraded {
+  color: var(--amber);
+}
+
 .tape-crawl {
   overflow: hidden;
   border-bottom: 1px solid var(--line);
