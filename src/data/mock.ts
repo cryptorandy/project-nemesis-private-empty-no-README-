@@ -29,12 +29,13 @@ export const SIZE_LIMITS = [
   { label: 'Crypto notional cap', value: '$2,000' },
 ]
 
+/** Micro-lot under ~10% BP (~$10.40 on MCP account). */
 export const INITIAL_TICKET: TicketDraft = {
   asset: 'Equity',
   side: 'Buy',
   symbol: 'NVDA',
-  qty: 1,
-  order: 'Limit',
+  qty: 0.05,
+  order: 'Market',
   limit: 166.5,
   tif: 'Day',
 }
@@ -78,7 +79,7 @@ export const INITIAL_AUDIT: AuditEntry[] = [
   },
 ]
 
-export const EQUITY_SIZE_PRESETS = [1, 2, 5, 10] as const
+export const EQUITY_SIZE_PRESETS = [0.05, 0.1, 0.25, 1] as const
 
 export const INITIAL_ACTIVITY: ActivityTick[] = [
   {

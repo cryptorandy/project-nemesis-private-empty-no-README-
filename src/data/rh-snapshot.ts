@@ -44,8 +44,8 @@ export const RH_SOURCE_NOTE =
   'RH MCP bake · hosted app polls /data/market.json — MCP unavailable in browser'
 
 export const RH_PORTFOLIO: RhPortfolio = {
-  totalValue: 352.77,
-  equityValue: 144.03,
+  totalValue: 350.61,
+  equityValue: 141.87,
   optionsValue: 105,
   cash: 103.74,
   buyingPower: 103.74,
@@ -159,6 +159,6 @@ export const NEWS_CRAWL = [
   'Scanner Watch · SOXL +3.2% AH · semi levered heat',
   'Desk Chief · focus NVDA / SOXL / TSLA · human confirms every ticket',
   'Watch · Randy Superstar list XOP ARKW BILL ALL on board',
-  'Risk Guard · soft limits armed · max notional $5k · no auto-place',
-  'Execution Prep · draft rail ready · preview required before confirm',
+  'Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place',
+  'Execution Prep · fast path · hot seat one-tap · confirm every order',
 ]

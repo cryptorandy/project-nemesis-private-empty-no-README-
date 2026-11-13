@@ -55,10 +55,12 @@ export type TicketDraft = {
   limit: number
   /** Time-in-force stub — Day default for equity. */
   tif: TicketTif
-  /** Option stub fields (ignored for equity). */
+  /** Option fields (ignored for equity). */
   optionRight?: 'Call' | 'Put'
   optionStrike?: number
   optionExpiry?: string
+  /** RH option instrument UUID — required for live option place. */
+  optionId?: string
 }
 
 export type TicketPhase = 'draft' | 'previewed' | 'confirmed'
@@ -70,7 +72,9 @@ export type TicketPreview = {
   notional: number
   mark: number
   summary: string
-  mode: 'mock'
+  mode: 'mock' | 'rh-review'
+  /** Soft RH review note (browser-local or agent-bridged). */
+  reviewNote?: string
 }
 
 export type AuditAction =
@@ -78,7 +82,11 @@ export type AuditAction =
   | 'preview'
   | 'risk-check'
   | 'confirm-mock'
+  | 'confirm-live'
   | 'place-mock'
+  | 'place-live-intent'
+  | 'rules-block'
+  | 'hotseat'
   | 'kill'
   | 'resume'
   | 'scan'

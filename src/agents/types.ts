@@ -32,7 +32,7 @@ export type AgentBrief = {
 
 export type StagedTicket = TicketDraft & {
   reason: string
-  stagedBy: 'exec' | 'flow'
+  stagedBy: 'exec' | 'flow' | 'scan' | 'options-scan'
   stagedAt: string
   /** Optional link back to ranked options idea */
   ideaId?: string
