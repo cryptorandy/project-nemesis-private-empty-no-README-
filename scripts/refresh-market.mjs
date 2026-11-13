@@ -6,7 +6,8 @@
  * Agents (or a local operator with MCP) pull:
  *   get_accounts → get_portfolio / get_equity_positions /
  *   get_equity_quotes / get_crypto_quotes / get_watchlist_items
- * then write `public/data/market.json` (and optionally sync TS fallback).
+ * then write `public/data/market.json`, `public/data/book.json` (positions+portfolio),
+ * and optionally sync TS fallback.
  *
  * Usage:
  *   node scripts/refresh-market.mjs              # validate + print status of existing JSON
@@ -23,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
 const jsonPath = join(root, 'public/data/market.json')
+const bookPath = join(root, 'public/data/book.json')
 const tsPath = join(root, 'src/data/rh-snapshot.ts')
 
 const args = new Set(process.argv.slice(2))
@@ -157,12 +159,29 @@ async function main() {
     )
   }
 
+  const book = {
+    schemaVersion: snap.schemaVersion ?? 1,
+    asOf: snap.asOf,
+    refreshedBy: snap.refreshedBy ?? 'agent-mcp',
+    accountMasked: snap.accountMasked ?? snap.portfolio.accountMasked,
+    sourceNote:
+      snap.bookSourceNote ??
+      'RH MCP book · prefer over market.json for positions/portfolio',
+    degraded: Boolean(snap.degraded),
+    portfolio: snap.portfolio,
+    positions: snap.positions,
+  }
+  writeFileSync(bookPath, `${JSON.stringify(book, null, 2)}\n`)
+  console.log(
+    `[refresh-market] wrote ${bookPath} positions=${book.positions.length}`,
+  )
+
   if (args.has('--write-ts')) {
     writeTsFallback(snap)
   }
 
   console.log(
-    '[refresh-market] hosted limit: browser cannot call RH MCP; redeploy or push refreshed market.json for new marks',
+    '[refresh-market] hosted limit: browser cannot call RH MCP; redeploy or push refreshed market.json + book.json for new marks',
   )
 }
 

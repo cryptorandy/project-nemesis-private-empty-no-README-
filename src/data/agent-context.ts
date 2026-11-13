@@ -21,7 +21,7 @@ export const SOFT_LIMITS = {
   maxDayLossPctOfAccount: 5,
   watchlistOnly: true,
   /** Derived: ~10% of baked BP — soft gate, not a hard RH reject */
-  maxNotionalPerTicket: 10.37,
+  maxNotionalPerTicket: 13.87,
   maxPctBookPerName: 8,
   maxOptionContracts: 5,
   cryptoNotionalCap: 2000,
@@ -199,10 +199,10 @@ export const CRYPTO_MARKS: CryptoMark[] = [
 ]
 
 export const PORTFOLIO_MARKS = {
-  totalValue: 352.74,
-  equityValue: 144.0,
-  optionsValue: 105,
-  cash: 103.74,
-  buyingPower: 103.74,
+  totalValue: 384.26,
+  equityValue: 120.61,
+  optionsValue: 125,
+  cash: 138.65,
+  buyingPower: 138.65,
   accountMasked: '••••0788',
 }
