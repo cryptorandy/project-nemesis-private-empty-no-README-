@@ -1198,6 +1198,113 @@
   white-space: nowrap;
 }
 
+.desk-brief-bar {
+  display: grid;
+  grid-template-columns: auto auto minmax(8rem, 0.4fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: baseline;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cyan) 8%, transparent),
+    transparent 55%
+  );
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  animation: thought-in 0.35s ease-out;
+}
+
+.desk-brief-kicker {
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.desk-brief-sev {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+}
+
+.desk-brief-sev.watch {
+  color: var(--amber);
+}
+
+.desk-brief-sev.escalate {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.desk-brief-head {
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desk-brief-detail {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staged-note {
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--cyan) 35%, var(--line));
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--cyan);
+  line-height: 1.35;
+  max-height: 3.2rem;
+  overflow: hidden;
+}
+
+.flag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.flag-list li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.research-detail {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.research-syms {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--cyan);
+  margin: 0 0 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .desk-brief-bar {
+    grid-template-columns: auto auto 1fr;
+  }
+
+  .desk-brief-detail {
+    grid-column: 1 / -1;
+  }
+}
+
 .news-crawl {
   display: flex;
   align-items: center;

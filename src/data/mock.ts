@@ -1,7 +1,6 @@
 import type {
   ActivityTick,
   Agent,
-  AgentLoopStatus,
   AuditEntry,
   TicketDraft,
 } from '../types'
@@ -19,87 +18,8 @@ export const AGENTS: Agent[] = [
   { id: 'exec', short: 'EXEC', name: 'Execution Prep', status: 'idle' },
 ]
 
-export const AGENT_THOUGHTS: Record<string, string[]> = {
-  chief: [
-    'Re-ranking open threads',
-    'Merging scanner + risk briefs',
-    'Desk pulse · no blockers',
-    'Prioritizing NVDA / SOXL / TSLA',
-  ],
-  scan: [
-    'Sweeping volume surge list',
-    'Hit · SOXL AH relative volume',
-    'Watchlist Superstar delta check',
-    'Scanner quiet · holding marks',
-  ],
-  risk: [
-    'Book concentration pass',
-    'Soft limit: notional under cap',
-    'Options notional $105 stub',
-    'Cash / BP snapshot ok',
-  ],
-  earn: [
-    'Calendar near holdings',
-    'Tomorrow print list stub',
-    'NVDA earnings packet idle',
-    'Peer estimate delta stub',
-  ],
-  flow: [
-    'Chain heat on watch names',
-    'TSLA 410c heat flagged',
-    'IV context stub refresh',
-    'Defined-risk ideas queued',
-  ],
-  cryp: [
-    'BTC −3.8% vs prior open',
-    'ETH mark refresh',
-    'Crypto notional under cap',
-    'Pulse · risk budget check',
-  ],
-  news: [
-    'Headline index for watch',
-    'SEC filing index hit stub',
-    '8-K delta queue empty',
-    'Filings quiet · holding',
-  ],
-  book: [
-    'Positions / P&L snapshot',
-    'SOXL unrealized lead',
-    'Drift vs targets · flat',
-    'Book ops tick complete',
-  ],
-  exec: [
-    'Draft ticket rail sync',
-    'Preview quote stub ready',
-    'No place path armed',
-    'Confirm gate standing by',
-  ],
-}
-
-export const STATUS_CYCLE: AgentLoopStatus[] = [
-  'scanning',
-  'briefing',
-  'idle',
-  'scanning',
-  'briefing',
-  'escalate',
-  'idle',
-  'scanning',
-]
-
 export const WATCH = [...RH_BOARD, ...RH_CRYPTO]
 export const INDICES = RH_INDICES
-
-export const RESEARCH_BRIEF = {
-  focus: 'NVDA',
-  headline: 'AH bid firm · holding micro-lot · soft risk pass',
-  bullets: [
-    'RH last ~$166.54 AH · prev close $166.19',
-    'Earnings Brief: next print placeholder — wire MCP later',
-    'Options Flow stub: 170c elevated IV',
-    'Risk Guard: notional under $5k soft limit for draft size',
-  ],
-}
 
 export const SIZE_LIMITS = [
   { label: 'Max notional / ticket', value: '$5,000' },
@@ -120,52 +40,52 @@ export const INITIAL_TICKET: TicketDraft = {
 export const INITIAL_AUDIT: AuditEntry[] = [
   {
     id: 'a4',
-    time: '02:39:56',
+    time: '02:40:33',
     entity: 'Portfolio Ops',
     action: 'brief',
-    details: 'RH market.json baked · MCP ••••0788 · as of 02:39:56Z',
+    details: 'RH market.json + agent context · MCP ••••0788',
   },
   {
     id: 'a3',
-    time: '02:39:40',
+    time: '02:40:20',
     entity: 'Scanner Watch',
     action: 'scan',
-    details: 'SOXL +3.2% AH annotated on board',
+    details: 'Daily gainers scan captured · MOD / CBRS / MU',
   },
   {
     id: 'a2',
-    time: '02:39:20',
-    entity: 'Crypto Pulse',
-    action: 'scan',
-    details: 'BTC/ETH marks refreshed from RH',
+    time: '02:40:10',
+    entity: 'Earnings Brief',
+    action: 'brief',
+    details: 'NVDA prints 2026-11-17 pm · est 2.48',
   },
   {
     id: 'a1',
-    time: '02:38:50',
+    time: '02:39:55',
     entity: 'Risk Guard',
     action: 'risk',
-    details: 'Soft limits armed · confirm-before-trade',
+    details: 'Soft limits armed · confirm-before-trade · no auto-place',
   },
 ]
 
 export const INITIAL_ACTIVITY: ActivityTick[] = [
   {
     id: 'act-0',
-    time: '02:39:56',
+    time: '02:40:33',
     agent: 'BOOK',
-    text: 'RH portfolio $352.77 · equity $144.03',
+    text: 'RH portfolio bake · waiting first swarm loop',
   },
   {
     id: 'act-1',
-    time: '02:39:40',
+    time: '02:40:20',
     agent: 'SCAN',
-    text: 'SOXL AH surge · board heat',
+    text: 'Daily gainers context armed · MOD +26% / CBRS +19%',
   },
   {
     id: 'act-2',
-    time: '02:39:20',
-    agent: 'CRYP',
-    text: 'BTC mark $70,279 · −4.6%',
+    time: '02:40:10',
+    agent: 'EARN',
+    text: 'NVDA earnings 11/17 pm · est EPS 2.48',
   },
 ]
 

@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  AGENTS,
-  AGENT_THOUGHTS,
-  INITIAL_ACTIVITY,
-  STATUS_CYCLE,
-  nowTime,
-} from '../data/mock'
+import { nowTime } from '../data/mock'
 import {
   bakedMarketSnapshot,
   fetchMarketSnapshot,
@@ -17,33 +11,12 @@ import type {
   MarketPosition,
   MarketQuote,
 } from '../data/market-types'
-import type {
-  ActivityTick,
-  AgentLoopStatus,
-  LiveAgentState,
-  QuoteRow,
-} from '../types'
+import type { QuoteRow } from '../types'
 
 /** Poll interval for /data/market.json (hosted bake refresh). */
 const POLL_MS = 12_000
 /** Marks older than this are labeled stale (agent refresh overdue). */
 const STALE_MS = 30 * 60 * 1000
-
-function pickThought(agentId: string, tick: number): string {
-  const lines = AGENT_THOUGHTS[agentId] ?? ['Loop idle']
-  return lines[tick % lines.length]
-}
-
-function seedAgents(): LiveAgentState[] {
-  return AGENTS.map((a, i) => ({
-    id: a.id,
-    short: a.short,
-    name: a.name,
-    status: a.status,
-    thought: pickThought(a.id, i),
-    orbitIndex: i,
-  }))
-}
 
 function toRow(q: MarketQuote): QuoteRow {
   return {
@@ -99,13 +72,12 @@ function deriveFeedStatus(
 }
 
 /**
- * Live / near-live desk marks over RH MCP bake.
- * Polls /data/market.json; falls back to baked TS; gentle tick between refreshes.
+ * Layer 1 data plane: poll RH MCP bake + gentle tick between refreshes.
+ * Agent swarm lives in useAgentSwarm — this hook does not own agent theater.
  * Never places orders.
  */
 export function useLiveDesk(killed: boolean) {
   const seed = bakedMarketSnapshot()
-  const [agents, setAgents] = useState<LiveAgentState[]>(seedAgents)
   const [board, setBoard] = useState<QuoteRow[]>(() => seed.board.map(toRow))
   const [indices, setIndices] = useState<QuoteRow[]>(() =>
     seed.indices.map(toRow),
@@ -127,12 +99,10 @@ export function useLiveDesk(killed: boolean) {
   const [lastPollAt, setLastPollAt] = useState<number | null>(null)
   const asOfRef = useRef(seed.asOf)
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({})
-  const [activity, setActivity] = useState<ActivityTick[]>(INITIAL_ACTIVITY)
   const [newsIdx, setNewsIdx] = useState(0)
   const [clock, setClock] = useState(nowTime)
   const [tick, setTick] = useState(0)
 
-  // Poll bake JSON (agents refresh file + redeploy/push)
   useEffect(() => {
     let cancelled = false
     const ctrl = new AbortController()
@@ -172,16 +142,7 @@ export function useLiveDesk(killed: boolean) {
   }, [])
 
   useEffect(() => {
-    if (killed) {
-      setAgents((prev) =>
-        prev.map((a) => ({
-          ...a,
-          status: 'paused' as AgentLoopStatus,
-          thought: 'Paused · kill switch',
-        })),
-      )
-      return
-    }
+    if (killed) return
 
     const id = window.setInterval(() => {
       setTick((t) => t + 1)
@@ -193,19 +154,6 @@ export function useLiveDesk(killed: boolean) {
 
   useEffect(() => {
     if (killed || tick === 0) return
-
-    setAgents((prev) =>
-      prev.map((a, i) => {
-        if ((tick + i) % 2 !== 0 && (tick + i) % 3 !== 0) return a
-        const status =
-          STATUS_CYCLE[(tick + i) % STATUS_CYCLE.length] ?? 'idle'
-        return {
-          ...a,
-          status,
-          thought: pickThought(a.id, tick + i),
-        }
-      }),
-    )
 
     const flashes: Record<string, number> = {}
 
@@ -241,19 +189,6 @@ export function useLiveDesk(killed: boolean) {
       setFlashKeys((f) => ({ ...f, ...flashes }))
     }
 
-    if (tick % 2 === 0) {
-      const speaker = AGENTS[tick % AGENTS.length]
-      setActivity((prev) => [
-        {
-          id: `act-${tick}-${speaker.id}`,
-          time: nowTime(),
-          agent: speaker.short,
-          text: pickThought(speaker.id, tick),
-        },
-        ...prev.slice(0, 18),
-      ])
-    }
-
     if (tick % 3 === 0 && newsCrawl.length) {
       setNewsIdx((i) => (i + 1) % newsCrawl.length)
     }
@@ -269,15 +204,14 @@ export function useLiveDesk(killed: boolean) {
   const asOfShort = formatAsOfShort(asOf)
 
   return {
-    agents,
     board,
     indices,
     crypto,
     positions,
     portfolio,
     flashKeys,
-    activity,
     tape,
+    /** Fallback crawl when swarm newsLine idle */
     newsLine: newsCrawl[newsIdx] ?? newsCrawl[0] ?? '',
     clock,
     tick,

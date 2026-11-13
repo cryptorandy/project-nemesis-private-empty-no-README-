@@ -1,6 +1,6 @@
 export type Surface = 'board' | 'research' | 'risk' | 'audit'
 
-/** Live loop statuses shown on the agent rail (mock cycles). */
+/** Live loop statuses shown on the agent rail (real swarm loops). */
 export type AgentLoopStatus =
   | 'scanning'
   | 'briefing'

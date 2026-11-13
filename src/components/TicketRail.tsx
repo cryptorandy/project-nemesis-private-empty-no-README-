@@ -4,6 +4,8 @@ type TicketRailProps = {
   ticket: TicketDraft
   phase: TicketPhase
   killed: boolean
+  /** Set when Execution Prep stages a draft (never places). */
+  stagedNote?: string | null
   onChange: (patch: Partial<TicketDraft>) => void
   onPreview: () => void
   onOpenGate: () => void
@@ -15,6 +17,7 @@ export function TicketRail({
   ticket,
   phase,
   killed,
+  stagedNote,
   onChange,
   onPreview,
   onOpenGate,
@@ -37,6 +40,12 @@ export function TicketRail({
       <div className="mock-banner">
         Mock flow only — never calls Robinhood place-order APIs.
       </div>
+
+      {stagedNote && (
+        <p className="staged-note" title={stagedNote}>
+          EXEC staged · {stagedNote}
+        </p>
+      )}
 
       {killed && (
         <p className="locked-note">Confirm locked · kill switch engaged</p>
