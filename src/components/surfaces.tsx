@@ -1,13 +1,19 @@
-import { RESEARCH_BRIEF, SIZE_LIMITS } from '../data/mock'
+import type { AgentBrief, AgentId } from '../agents/types'
+import { metaById } from '../agents/roster'
+import { SIZE_LIMITS } from '../data/mock'
 import { RH_AS_OF, RH_SOURCE_NOTE } from '../data/rh-snapshot'
 import type { AuditEntry } from '../types'
 
-type RiskProps = {
-  killed: boolean
-  onToggleKill: () => void
+type ResearchProps = {
+  deskBrief: AgentBrief | null
+  briefs: Partial<Record<AgentId, AgentBrief>>
 }
 
-export function ResearchSurface() {
+export function ResearchSurface({ deskBrief, briefs }: ResearchProps) {
+  const specialists = (
+    Object.entries(briefs) as [AgentId, AgentBrief][]
+  ).filter(([id]) => id !== 'chief')
+
   return (
     <section className="surface" aria-labelledby="research-title">
       <div className="surface-scan" aria-hidden />
@@ -15,23 +21,44 @@ export function ResearchSurface() {
         Research
       </h1>
       <p className="surface-sub">
-        Ticker workspace — RH snapshot focus · filings hooks later.
+        Desk Chief merge + specialist briefs from live agent loops (RH MCP
+        context + heuristics).
       </p>
       <div className="research-card">
-        <div className="research-focus">Focus · {RESEARCH_BRIEF.focus}</div>
-        <h3>{RESEARCH_BRIEF.headline}</h3>
+        <div className="research-focus">
+          Desk brief · {deskBrief?.severity ?? 'idle'}
+        </div>
+        <h3>{deskBrief?.headline ?? 'Waiting first Chief loop…'}</h3>
+        <p className="research-detail">
+          {deskBrief?.detail ?? RH_SOURCE_NOTE}
+        </p>
+        {deskBrief?.symbols?.length ? (
+          <p className="research-syms">
+            Symbols · {deskBrief.symbols.join(' · ')}
+          </p>
+        ) : null}
         <ul>
-          {RESEARCH_BRIEF.bullets.map((b) => (
-            <li key={b}>{b}</li>
+          {specialists.slice(0, 6).map(([id, b]) => (
+            <li key={id}>
+              <strong>{metaById(id).short}</strong> — {b.headline}
+            </li>
           ))}
         </ul>
-        <p className="panel-foot">{RH_SOURCE_NOTE}</p>
+        <p className="panel-foot">
+          Agent context as-of loops · agents never place orders
+        </p>
       </div>
     </section>
   )
 }
 
-export function RiskSurface({ killed, onToggleKill }: RiskProps) {
+type RiskProps = {
+  killed: boolean
+  onToggleKill: () => void
+  riskFlags: string[]
+}
+
+export function RiskSurface({ killed, onToggleKill, riskFlags }: RiskProps) {
   return (
     <section className="surface" aria-labelledby="risk-title">
       <div className="surface-scan" aria-hidden />
@@ -39,7 +66,7 @@ export function RiskSurface({ killed, onToggleKill }: RiskProps) {
         Risk
       </h1>
       <p className="surface-sub">
-        Book heat, soft limits, kill-switch status.
+        Risk Guard loop flags, soft limits, kill-switch status.
       </p>
       <div className="panel-grid">
         <div className="panel">
@@ -64,7 +91,7 @@ export function RiskSurface({ killed, onToggleKill }: RiskProps) {
         <div className="panel">
           <div className="panel-head">
             <span className="panel-label">Size limits</span>
-            <span className="panel-status muted">placeholders</span>
+            <span className="panel-status muted">soft blocks</span>
           </div>
           <ul className="limit-list">
             {SIZE_LIMITS.map((lim) => (
@@ -77,6 +104,21 @@ export function RiskSurface({ killed, onToggleKill }: RiskProps) {
           <div className="panel-foot">
             RH as-of {RH_AS_OF} · soft blocks only · no auto-place.
           </div>
+        </div>
+        <div className="panel">
+          <div className="panel-head">
+            <span className="panel-label">Risk Guard flags</span>
+            <span className="panel-status">live loop</span>
+          </div>
+          {riskFlags.length === 0 ? (
+            <p className="dim">Waiting first Risk Guard loop…</p>
+          ) : (
+            <ul className="flag-list">
+              {riskFlags.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </section>

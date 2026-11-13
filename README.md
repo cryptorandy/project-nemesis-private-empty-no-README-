@@ -1,8 +1,8 @@
 # Project Nemesis
 
-Mixed equities / options / crypto **research + execution desk**. Specialist agents orbit the book; Randy confirms every ticket.
+Mixed equities / options / crypto **research + execution desk**. Specialist agents run real timed loops; Randy confirms every ticket.
 
-TV-style trading board over a Robinhood MCP snapshot: scrolling tape, indices strip, quote grid, positions/P&L, crypto strip, options heat stub, agent swarm wall, activity + news crawls. Confirm-before-trade only — **no place-order calls**.
+TV-style trading board over a Robinhood MCP bake + poll path, plus a **real agent swarm** that writes briefs into desk state. Confirm-before-trade only — **no place-order calls**.
 
 ## Run locally
 
@@ -21,16 +21,17 @@ npm run preview
 ## What’s in this build
 
 - Brand-first hero (orbit atmosphere does **not** steal clicks)
-- Dense Board: indices · tape crawl · P&L strip · quote grid · positions · crypto · options heat stub · agent swarm · activity · news crawl
-- Research / Risk / Audit + Ticket rail
-- 9-agent rail with staggered orbit/pulse + status flickers (scanning / briefing / idle / escalate)
-- Kill switch (pauses agents + disables confirm)
-- Ticket draft → mock preview → human confirm gate → mock confirm
-- Layer 1 market truth: agents bake RH MCP into `public/data/market.json`; UI polls it; TS fallback in `src/data/rh-snapshot.ts`
+- Dense Board: indices · tape · P&L · quotes · positions · crypto · options heat stub · agent swarm · activity · Chief brief bar
+- **Layer 1 market truth:** agents bake RH MCP into `public/data/market.json`; UI polls it; TS fallback in `src/data/rh-snapshot.ts`
 - Clear **as of** timestamps + graceful degrade when poll fails
-- High-frequency tape tick between bake refreshes (TV energy, not a live MCP socket)
+- **Layer 2 real agent loops** (Desk Chief → Execution Prep) writing briefs from RH MCP context + heuristics
+- Activity wall shows real loop outputs (not canned status theater)
+- Execution Prep **stages** draft tickets only — never places
+- Research / Risk / Audit + Ticket rail
+- Kill switch (pauses all loops + disables confirm)
+- Ticket draft → mock preview → human confirm gate → mock confirm
 
-See [docs/live-vs-mock.md](docs/live-vs-mock.md) for live vs mock detail.
+See [docs/live-vs-mock.md](docs/live-vs-mock.md).
 
 ## Hosted URL
 
@@ -51,7 +52,7 @@ node scripts/refresh-market.mjs
 
 ## Safety
 
-Orders are **never** placed by this UI. Preview and confirm are mock-only. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json` when MCP is reachable, then push/republish.
+Orders are **never** placed by agents or this UI’s confirm mock. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json` and swarm context (`src/data/agent-context.ts`) when MCP is reachable, then push/republish.
 
 ## Repo note
 

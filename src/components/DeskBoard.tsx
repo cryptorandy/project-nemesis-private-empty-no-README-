@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import type { AgentBrief, AgentId } from '../agents/types'
 import { formatMoney, formatPct } from '../data/mock'
 import type { FeedStatus, MarketPortfolio, MarketPosition } from '../data/market-types'
 import { OPTIONS_HEAT_STUB } from '../data/rh-snapshot'
@@ -13,6 +14,8 @@ type DeskBoardProps = {
   flashKeys: Record<string, number>
   activity: ActivityTick[]
   agents: LiveAgentState[]
+  briefs: Partial<Record<AgentId, AgentBrief>>
+  deskBrief: AgentBrief | null
   tape: QuoteRow[]
   newsLine: string
   clock: string
@@ -22,6 +25,7 @@ type DeskBoardProps = {
   feedStatus: FeedStatus
   killed: boolean
   focusedAgent: string | null
+  loopCount: number
   onSelectAgent: (id: string) => void
   onPickSymbol: (symbol: string) => void
 }
@@ -56,6 +60,8 @@ export function DeskBoard({
   flashKeys,
   activity,
   agents,
+  briefs,
+  deskBrief,
   tape,
   newsLine,
   clock,
@@ -65,6 +71,7 @@ export function DeskBoard({
   feedStatus,
   killed,
   focusedAgent,
+  loopCount,
   onSelectAgent,
   onPickSymbol,
 }: DeskBoardProps) {
@@ -148,7 +155,24 @@ export function DeskBoard({
             {asOfShort} · {feedLabel(feedStatus)}
           </span>
         </div>
+        <div className="pnl-cell muted">
+          <span className="pnl-label">Swarm</span>
+          <span className="pnl-val tiny">
+            {killed ? 'paused' : `${loopCount} loops`}
+          </span>
+        </div>
       </div>
+
+      {deskBrief && (
+        <div className="desk-brief-bar" aria-live="polite">
+          <span className="desk-brief-kicker">CHIEF</span>
+          <span className={`desk-brief-sev ${deskBrief.severity}`}>
+            {deskBrief.severity}
+          </span>
+          <span className="desk-brief-head">{deskBrief.headline}</span>
+          <span className="desk-brief-detail">{deskBrief.detail}</span>
+        </div>
+      )}
 
       <div className="board-grid">
         {/* Quote grid */}
@@ -276,12 +300,13 @@ export function DeskBoard({
           <header className="zone-head">
             <h2>Agent swarm</h2>
             <span className="zone-tag">
-              {killed ? 'paused' : 'constant activity'}
+              {killed ? 'paused' : 'timed loops · real briefs'}
             </span>
           </header>
           <div className="swarm-grid">
             {agents.map((a) => {
               const status = killed ? 'paused' : a.status
+              const b = briefs[a.id as AgentId]
               return (
                 <button
                   key={a.id}
@@ -293,7 +318,7 @@ export function DeskBoard({
                     } as CSSProperties
                   }
                   onClick={() => onSelectAgent(a.id)}
-                  title={`${a.name} · ${status}`}
+                  title={`${a.name} · ${status}${b ? ` · ${b.headline}` : ''}`}
                 >
                   <span className="swarm-orbit" aria-hidden>
                     <span className="swarm-ring" />
@@ -302,7 +327,9 @@ export function DeskBoard({
                   <span className="swarm-short">{a.short}</span>
                   <span className="swarm-status">{status}</span>
                   <span className="swarm-thought">
-                    {killed ? 'Paused' : a.thought}
+                    {killed
+                      ? 'Paused'
+                      : b?.headline ?? a.thought}
                   </span>
                 </button>
               )
@@ -310,18 +337,20 @@ export function DeskBoard({
           </div>
         </div>
 
-        {/* Activity crawl / feed */}
+        {/* Activity crawl / feed — real loop outputs */}
         <div className="zone zone-activity">
           <header className="zone-head">
             <h2>Activity</h2>
-            <span className="zone-tag">agent crawl</span>
+            <span className="zone-tag">loop outputs</span>
           </header>
           <ul className="activity-list dense">
             {activity.map((t) => (
               <li key={t.id} className="activity-row">
                 <span className="activity-time">{t.time}</span>
                 <span className="activity-agent">{t.agent}</span>
-                <span className="activity-text">{t.text}</span>
+                <span className="activity-text" title={t.text}>
+                  {t.text}
+                </span>
               </li>
             ))}
           </ul>
