@@ -56,18 +56,41 @@ export function resolveMark(ticket: TicketDraft, liveMark?: number): number {
  * Pre-confirm soft checks vs % capital rules on baked RH portfolio.
  * Never places orders — advisory only for the human gate.
  */
+export type RiskCheckOverrides = {
+  maxPctBuyingPowerPerTrade?: number
+  maxDayLossPctOfAccount?: number
+  watchlistOnly?: boolean
+  buyingPower?: number
+  totalValue?: number
+  /** Extra allowlist symbols (uppercase) when watchlist_only */
+  extraAllowed?: string[]
+}
+
 export function runRiskSoftChecks(
   ticket: TicketDraft,
   liveMark?: number,
+  overrides?: RiskCheckOverrides,
 ): RiskReport {
   const mark = resolveMark(ticket, liveMark)
   const notional = estimateNotional(ticket, mark)
-  const book = RH_PORTFOLIO.totalValue || PORTFOLIO_MARKS.totalValue || 1
-  const bp = RH_PORTFOLIO.buyingPower || PORTFOLIO_MARKS.buyingPower
-  const bpCap = (bp * RISK_CAPS.maxPctBuyingPowerPerTrade) / 100
-  const dayLossCap = (book * RISK_CAPS.maxDayLossPctOfAccount) / 100
+  const book =
+    overrides?.totalValue ??
+    (RH_PORTFOLIO.totalValue || PORTFOLIO_MARKS.totalValue || 1)
+  const bp =
+    overrides?.buyingPower ??
+    (RH_PORTFOLIO.buyingPower || PORTFOLIO_MARKS.buyingPower)
+  const pctCap =
+    overrides?.maxPctBuyingPowerPerTrade ?? RISK_CAPS.maxPctBuyingPowerPerTrade
+  const dayLossPct =
+    overrides?.maxDayLossPctOfAccount ?? RISK_CAPS.maxDayLossPctOfAccount
+  const watchlistOnly = overrides?.watchlistOnly ?? RISK_CAPS.watchlistOnly
+  const bpCap = (bp * pctCap) / 100
+  const dayLossCap = (book * dayLossPct) / 100
   const pctBp = bp > 0 ? (notional / bp) * 100 : 999
-  const allowed = allowedUnderlyings()
+  const allowed = new Set(allowedUnderlyings())
+  for (const s of overrides?.extraAllowed ?? []) {
+    if (s.trim()) allowed.add(s.trim().toUpperCase())
+  }
 
   const checks: RiskCheck[] = []
 
@@ -96,20 +119,20 @@ export function runRiskSoftChecks(
     })
   }
 
-  // Watchlist-only (holdings + Superstar)
-  if (ticket.symbol.trim() && RISK_CAPS.watchlistOnly) {
+  // Watchlist-only (holdings + Superstar) — hard block when armed
+  if (ticket.symbol.trim() && watchlistOnly) {
     const ok = allowed.has(ticket.symbol.trim().toUpperCase())
     checks.push({
       id: 'watchlist',
       label: 'Watchlist-only',
       detail: ok
         ? `${ticket.symbol} on holdings / Superstar universe`
-        : `${ticket.symbol} not on watchlist/holdings — soft block`,
+        : `${ticket.symbol} not on watchlist/holdings — BLOCK`,
       level: ok ? 'pass' : 'block',
     })
   }
 
-  // 10% buying power per trade
+  // % buying power per trade — hard block outside standing rule
   if (ticket.side === 'Buy') {
     if (notional > bp) {
       checks.push({
@@ -121,20 +144,20 @@ export function runRiskSoftChecks(
     } else if (notional > bpCap) {
       checks.push({
         id: 'bp-pct',
-        label: `${RISK_CAPS.maxPctBuyingPowerPerTrade}% BP / trade`,
-        detail: `~$${notional.toFixed(2)} = ${pctBp.toFixed(1)}% BP · cap $${bpCap.toFixed(2)}`,
-        level: 'warn',
+        label: `${pctCap}% BP / trade`,
+        detail: `~$${notional.toFixed(2)} = ${pctBp.toFixed(1)}% BP · cap $${bpCap.toFixed(2)} — BLOCK`,
+        level: 'block',
       })
       checks.push({
         id: 'buying-power',
         label: 'Buying power',
-        detail: `BP $${bp.toFixed(2)} covers premium · over % cap`,
+        detail: `BP $${bp.toFixed(2)} covers cash · standing % cap blocks`,
         level: 'pass',
       })
     } else {
       checks.push({
         id: 'bp-pct',
-        label: `${RISK_CAPS.maxPctBuyingPowerPerTrade}% BP / trade`,
+        label: `${pctCap}% BP / trade`,
         detail: `~$${notional.toFixed(2)} = ${pctBp.toFixed(1)}% BP under $${bpCap.toFixed(2)}`,
         level: 'pass',
       })
@@ -154,26 +177,26 @@ export function runRiskSoftChecks(
     })
     checks.push({
       id: 'bp-pct',
-      label: `${RISK_CAPS.maxPctBuyingPowerPerTrade}% BP / trade`,
+      label: `${pctCap}% BP / trade`,
       detail: 'Sell · % BP rule N/A',
       level: 'pass',
     })
   }
 
-  // 5% account day-loss budget (premium at risk for long options ≈ max loss)
+  // Day-loss budget — hard block when premium at risk exceeds standing %
   if (ticket.side === 'Buy') {
     if (notional > dayLossCap) {
       checks.push({
         id: 'day-loss',
-        label: `${RISK_CAPS.maxDayLossPctOfAccount}% day-loss budget`,
-        detail: `Premium at risk ~$${notional.toFixed(2)} > $${dayLossCap.toFixed(2)} (${RISK_CAPS.maxDayLossPctOfAccount}% of $${book.toFixed(0)})`,
-        level: 'warn',
+        label: `${dayLossPct}% day-loss budget`,
+        detail: `At risk ~$${notional.toFixed(2)} > $${dayLossCap.toFixed(2)} (${dayLossPct}% of $${book.toFixed(0)}) — BLOCK`,
+        level: 'block',
       })
     } else {
       checks.push({
         id: 'day-loss',
-        label: `${RISK_CAPS.maxDayLossPctOfAccount}% day-loss budget`,
-        detail: `Premium at risk ~$${notional.toFixed(2)} ≤ $${dayLossCap.toFixed(2)}`,
+        label: `${dayLossPct}% day-loss budget`,
+        detail: `At risk ~$${notional.toFixed(2)} ≤ $${dayLossCap.toFixed(2)}`,
         level: 'pass',
       })
     }

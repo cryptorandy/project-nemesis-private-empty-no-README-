@@ -1,5 +1,11 @@
 import type { RiskReport } from '../lib/riskChecks'
 import { EQUITY_SIZE_PRESETS } from '../data/mock'
+import { StandingRulesPanel } from './StandingRulesPanel'
+import type {
+  CapitalSnapshot,
+  StandingEval,
+  StandingRules,
+} from '../lib/standingRules'
 import type {
   TicketAsset,
   TicketDraft,
@@ -16,7 +22,11 @@ type TicketRailProps = {
   preview: TicketPreview | null
   risk: RiskReport
   killed: boolean
-  /** Set when Execution Prep stages a draft (never places). */
+  hotSeat: boolean
+  standingRules: StandingRules
+  standing: StandingEval
+  capital: CapitalSnapshot
+  allowedCount: number
   stagedNote?: string | null
   liveMark: number | null
   onChange: (patch: Partial<TicketDraft>) => void
@@ -24,6 +34,8 @@ type TicketRailProps = {
   onOpenGate: () => void
   onCancel: () => void
   onNewDraft: () => void
+  onRulesChange: (patch: Partial<StandingRules>) => void
+  onToggleHotSeat: () => void
 }
 
 function levelClass(level: RiskReport['worst']): string {
@@ -36,6 +48,11 @@ export function TicketRail({
   preview,
   risk,
   killed,
+  hotSeat,
+  standingRules,
+  standing,
+  capital,
+  allowedCount,
   stagedNote,
   liveMark,
   onChange,
@@ -43,39 +60,65 @@ export function TicketRail({
   onOpenGate,
   onCancel,
   onNewDraft,
+  onRulesChange,
+  onToggleHotSeat,
 }: TicketRailProps) {
   const confirmed = phase === 'confirmed'
   const previewed = phase === 'previewed' || confirmed
   const equity = ticket.asset === 'Equity'
+  const option = ticket.asset === 'Option'
+  const hardBlocked =
+    standing.blocked || risk.checks.some((c) => c.level === 'block')
   const canPreview =
     !confirmed &&
     !!ticket.symbol.trim() &&
     ticket.qty > 0 &&
-    !risk.checks.some((c) => c.id === 'symbol' && c.level === 'block')
-  const canOpenGate = previewed && !killed && !confirmed
+    !hardBlocked
+  const canOpenGate = previewed && !killed && !confirmed && !hardBlocked
 
   return (
     <aside className="ticket-rail" aria-label="Pro ticket rail">
       <div className="ticket-head">
-        <span className="ticket-label">Pro ticket</span>
+        <span className="ticket-label">Fast ticket</span>
         <span className={`badge ${phase}`}>
-          {phase === 'confirmed' ? 'placed-mock' : phase}
+          {phase === 'confirmed'
+            ? 'placed'
+            : hotSeat
+              ? `${phase} · hot`
+              : phase}
         </span>
       </div>
       <h2 className="ticket-title">Execution builder</h2>
-      <div className="mock-banner">
-        Human confirm required · mock place only until RH write path is
-        wired. Never auto-places. Agents only stage.
+      <div className={`mock-banner ${hotSeat ? 'hot' : ''}`}>
+        {hotSeat
+          ? 'HOT SEAT · one-tap confirm after preview · standing % rules hard-block · never unsupervised'
+          : 'Human confirm required · standing % of capital · RH place only after confirm'}
       </div>
+
+      <StandingRulesPanel
+        rules={standingRules}
+        capital={capital}
+        standing={standing}
+        hotSeat={hotSeat}
+        onChange={onRulesChange}
+        onToggleHotSeat={onToggleHotSeat}
+        allowedCount={allowedCount}
+      />
 
       {stagedNote && (
         <p className="staged-note" title={stagedNote}>
-          EXEC staged · {stagedNote}
+          Staged · {stagedNote}
         </p>
       )}
 
       {killed && (
         <p className="locked-note">Confirm locked · kill switch engaged</p>
+      )}
+
+      {hardBlocked && (
+        <p className="locked-note">
+          Outside standing rules · preview/confirm blocked
+        </p>
       )}
 
       <div className="ticket-form">
@@ -91,21 +134,23 @@ export function TicketRail({
                 onClick={() => onChange({ asset })}
               >
                 {asset}
-                {asset === 'Crypto' ? ' ·stub' : ''}
+                {asset === 'Crypto' ? ' ·off' : ''}
               </button>
             ))}
           </div>
         </div>
 
-        {ticket.asset === 'Crypto' && (
+        {option && (
           <div className="stub-note">
-            Crypto stub — snapshot marks; same preview → confirm ritual.
+            Option fast path · scanner Stage cards land here · same preview →
+            one-tap confirm · premium ×100 under % BP
+            {ticket.optionId ? ` · id ${ticket.optionId.slice(0, 8)}…` : ''}
           </div>
         )}
-        {ticket.asset === 'Option' && (
+
+        {ticket.asset === 'Crypto' && (
           <div className="stub-note">
-            Options from FLOW scanner · Greeks on board ideas · confirm still
-            required · never auto-place.
+            Crypto place not armed on fast path — equity/option only.
           </div>
         )}
 
@@ -145,7 +190,7 @@ export function TicketRail({
         </div>
 
         <div className="field">
-          <label htmlFor="symbol">Symbol</label>
+          <label htmlFor="symbol">{option ? 'Underlying' : 'Symbol'}</label>
           <input
             id="symbol"
             value={ticket.symbol}
@@ -156,7 +201,7 @@ export function TicketRail({
               onChange({ symbol: e.target.value.toUpperCase() })
             }
           />
-          {liveMark != null && liveMark > 0 && (
+          {liveMark != null && liveMark > 0 && !option && (
             <span className="field-hint">
               Last mark ${liveMark.toFixed(2)}
               {ticket.order === 'Limit' ? ' · limit editable' : ' · MKT uses mark'}
@@ -164,68 +209,69 @@ export function TicketRail({
           )}
         </div>
 
-        {ticket.asset === 'Option' && (
-          <>
-            <div className="field-row">
-              <div className="field">
-                <label>Right</label>
-                <div className="seg">
-                  {(['Call', 'Put'] as const).map((right) => (
-                    <button
-                      key={right}
-                      type="button"
-                      className={
-                        (ticket.optionRight ?? 'Call') === right ? 'on' : ''
-                      }
-                      disabled={confirmed}
-                      onClick={() => onChange({ optionRight: right })}
-                    >
-                      {right}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="strike">Strike</label>
-                <input
-                  id="strike"
-                  type="number"
-                  step="0.5"
-                  value={ticket.optionStrike ?? 170}
-                  disabled={confirmed}
-                  onChange={(e) =>
-                    onChange({ optionStrike: Number(e.target.value) || 0 })
-                  }
-                />
+        {option && (
+          <div className="field-row">
+            <div className="field">
+              <label>Right</label>
+              <div className="seg">
+                {(['Call', 'Put'] as const).map((right) => (
+                  <button
+                    key={right}
+                    type="button"
+                    className={
+                      (ticket.optionRight ?? 'Call') === right ? 'on' : ''
+                    }
+                    disabled={confirmed}
+                    onClick={() => onChange({ optionRight: right })}
+                  >
+                    {right}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="field">
-              <label htmlFor="expiry">Expiry</label>
+              <label htmlFor="strike">Strike</label>
               <input
-                id="expiry"
-                value={ticket.optionExpiry ?? ''}
-                placeholder="YYYY-MM-DD"
+                id="strike"
+                type="number"
+                step="0.5"
+                value={ticket.optionStrike ?? 170}
                 disabled={confirmed}
-                onChange={(e) => onChange({ optionExpiry: e.target.value })}
+                onChange={(e) =>
+                  onChange({ optionStrike: Number(e.target.value) || 0 })
+                }
               />
             </div>
-          </>
+          </div>
+        )}
+
+        {option && (
+          <div className="field">
+            <label htmlFor="expiry">Expiry</label>
+            <input
+              id="expiry"
+              value={ticket.optionExpiry ?? ''}
+              placeholder="YYYY-MM-DD"
+              disabled={confirmed}
+              onChange={(e) => onChange({ optionExpiry: e.target.value })}
+            />
+          </div>
         )}
 
         <div className="field-row">
           <div className="field">
-            <label htmlFor="qty">Size</label>
+            <label htmlFor="qty">{option ? 'Contracts' : 'Size'}</label>
             <input
               id="qty"
               type="number"
-              min={ticket.asset === 'Crypto' ? 0.0001 : 1}
-              step={ticket.asset === 'Crypto' ? 0.0001 : 1}
+              min={option ? 1 : 0.0001}
+              step={option ? 1 : 0.01}
               value={ticket.qty}
               disabled={confirmed}
               onChange={(e) =>
                 onChange({
                   qty: Math.max(
-                    ticket.asset === 'Crypto' ? 0.0001 : 1,
+                    option ? 1 : 0.0001,
                     Number(e.target.value) || 0,
                   ),
                 })
@@ -266,7 +312,7 @@ export function TicketRail({
         </div>
 
         <div className="field">
-          <label htmlFor="limit">Limit</label>
+          <label htmlFor="limit">{option ? 'Premium' : 'Limit'}</label>
           <input
             id="limit"
             type="number"
@@ -288,16 +334,22 @@ export function TicketRail({
             })}
           </strong>
         </div>
+        <div className="notional-row subtle">
+          <span>Standing cap</span>
+          <strong>${standing.caps.maxNotionalDollars.toFixed(2)}</strong>
+        </div>
 
         <div className="risk-panel" aria-label="Risk soft-checks">
           <div className="risk-panel-head">
-            <span>Risk soft-checks</span>
+            <span>Risk + standing</span>
             <span className={levelClass(risk.worst)}>{risk.worst}</span>
           </div>
           <ul className="risk-check-list">
             {risk.checks.map((c) => (
               <li key={c.id} className={`risk-check ${c.level}`}>
-                <span className={`gate-pip ${c.level === 'pass' ? '' : 'off'} ${c.level}`} />
+                <span
+                  className={`gate-pip ${c.level === 'pass' ? '' : 'off'} ${c.level}`}
+                />
                 <div>
                   <div className="risk-check-label">{c.label}</div>
                   <div className="risk-check-detail">{c.detail}</div>
@@ -309,11 +361,13 @@ export function TicketRail({
 
         {previewed && preview && (
           <div className="preview-box">
-            <div className="preview-kicker">MOCK preview · {preview.id}</div>
+            <div className="preview-kicker">
+              Preview · {preview.id} · {preview.mode}
+            </div>
             {preview.summary}
             <div className="preview-foot">
-              Notional ~${preview.notional.toFixed(2)} · no broker call ·
-              confirm gate next
+              Notional ~${preview.notional.toFixed(2)} · confirm gate next
+              {hotSeat ? ' · one-tap' : ''}
             </div>
           </div>
         )}
@@ -336,7 +390,7 @@ export function TicketRail({
               disabled={!canPreview}
               onClick={onPreview}
             >
-              Preview (mock)
+              Preview
             </button>
             <button
               type="button"
@@ -344,7 +398,7 @@ export function TicketRail({
               disabled={!canOpenGate}
               onClick={onOpenGate}
             >
-              Confirm gate…
+              {hotSeat ? 'One-tap confirm…' : 'Confirm gate…'}
             </button>
             <button
               type="button"

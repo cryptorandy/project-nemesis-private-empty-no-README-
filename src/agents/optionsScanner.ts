@@ -254,6 +254,8 @@ export function ideaToStagedFields(idea: OptionBuyIdea) {
     optionRight: idea.right,
     optionStrike: idea.strike,
     optionExpiry: idea.expiry,
+    /** RH instrument UUID — enables live place_option_order after confirm */
+    optionId: idea.instrumentId,
     reason: `#${idea.rank} ${idea.structure} · ${idea.thesis} · ${idea.riskNote} · NEVER place`,
   }
 }

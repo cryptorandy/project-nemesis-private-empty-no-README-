@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-13T02:39:56Z",
+  "asOf": "2026-11-13T03:15:00Z",
   "refreshedBy": "agent-mcp",
   "accountMasked": "••••0788",
   "sourceNote": "RH MCP bake · hosted app polls this JSON; MCP unavailable in browser",
   "degraded": false,
   "portfolio": {
-    "totalValue": 352.77,
-    "equityValue": 144.03,
+    "totalValue": 350.61,
+    "equityValue": 141.87,
     "optionsValue": 105,
     "cash": 103.74,
     "buyingPower": 103.74,
@@ -240,7 +240,16 @@
   "watchlist": {
     "id": "0d15643a-a325-4cc5-b409-f334e12cfe17",
     "name": "Randys superstar Or Surprise stock",
-    "symbols": ["XOP", "ARKW", "ST", "BILL", "JG", "ALL", "NCTY", "MAC"]
+    "symbols": [
+      "XOP",
+      "ARKW",
+      "ST",
+      "BILL",
+      "JG",
+      "ALL",
+      "NCTY",
+      "MAC"
+    ]
   },
   "newsCrawl": [
     "RH · MCP account ••••0788 equity $144.03 · options $105 · cash $103.74",
@@ -249,7 +258,7 @@
     "Scanner Watch · SOXL +3.2% AH · semi levered heat",
     "Desk Chief · focus NVDA / SOXL / TSLA · human confirms every ticket",
     "Watch · Randy Superstar list XOP ARKW BILL ALL on board",
-    "Risk Guard · soft limits armed · max notional $5k · no auto-place",
-    "Execution Prep · draft rail ready · preview required before confirm"
+    "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place",
+    "Execution Prep · fast path · hot seat one-tap · confirm every order"
   ]
 }

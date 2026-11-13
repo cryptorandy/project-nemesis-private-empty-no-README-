@@ -2,7 +2,7 @@
 
 Mixed equities / options / crypto **research + execution desk**. Specialist agents run real timed loops; Randy confirms every ticket.
 
-TV-style trading board over a Robinhood MCP bake + poll path, plus a **real agent swarm** that writes briefs into desk state. Confirm-before-trade only — **no place-order calls**.
+TV-style trading board over a Robinhood MCP bake + poll path, plus a **real agent swarm** that writes briefs into desk state. **Fast path:** editable standing % of capital + hot-seat one-tap confirm → RH-shaped live-intent (never unsupervised).
 
 ## Run locally
 
@@ -30,9 +30,10 @@ npm run preview
 - Execution Prep **stages** draft tickets only — never places
 - Research / Risk / Audit + Ticket rail
 - Kill switch (pauses all loops + disables confirm)
-- Pro ticket builder (equity + options; crypto stub) → mock preview → hard confirm gate → mock place
-- Risk soft-checks: **10% BP / trade**, **5% day loss**, **watchlist-only** on MCP ••••0788
-- Immutable append-only audit (preview / risk-check / confirm / place-mock / kill)
+- Fast ticket rail (equity + scanner-staged options) → preview → confirm → RH live-intent
+- Standing rules panel: **10% BP / trade**, **5% day loss**, **watchlist-only** (editable; $ caps from live BP/equity)
+- Session **hot seat** — one-tap confirm per order (kill switch still locks)
+- Immutable append-only audit (preview / risk-check / confirm-live / place-live-intent / kill)
 
 See [docs/live-vs-mock.md](docs/live-vs-mock.md).
 
@@ -55,7 +56,7 @@ node scripts/refresh-market.mjs
 
 ## Safety
 
-Orders are **never** placed by agents or this UI. Options ideas stage only — Randy confirms. Preview / confirm / place are mock-only (`ALLOW_LIVE_PLACE=false`). Place runs only through the ConfirmGate path. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json`, `src/data/options-scan.ts`, and swarm context (`src/data/agent-context.ts`) when MCP is reachable, then push/republish. Keep the published app **private**.
+Orders are **never** placed without explicit ConfirmGate confirm (hot seat = one tap, still per-order). Standing % rules hard-block outside caps. Options ideas stage only — Randy confirms. Hosted app cannot call Robinhood MCP at runtime — confirm queues RH-shaped live-intent for agent `review_*` / `place_*` on MCP ••••0788. Agents never auto-place. Keep the published app **private**.
 
 ## Repo note
 

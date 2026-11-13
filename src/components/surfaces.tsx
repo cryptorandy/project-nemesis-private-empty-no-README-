@@ -4,6 +4,12 @@ import { metaById } from '../agents/roster'
 import { SIZE_LIMITS } from '../data/mock'
 import { RH_AS_OF, RH_PORTFOLIO, RH_SOURCE_NOTE } from '../data/rh-snapshot'
 import type { RiskReport } from '../lib/riskChecks'
+import type {
+  CapitalSnapshot,
+  StandingEval,
+  StandingRules,
+} from '../lib/standingRules'
+import { formatPct } from '../lib/standingRules'
 import type { AuditEntry, TicketDraft } from '../types'
 
 type ResearchProps = {
@@ -85,6 +91,11 @@ type RiskProps = {
   riskFlags: string[]
   risk: RiskReport
   ticket: TicketDraft
+  standingRules: StandingRules
+  standing: StandingEval
+  capital: CapitalSnapshot
+  hotSeat: boolean
+  onToggleHotSeat: () => void
 }
 
 export function RiskSurface({
@@ -93,6 +104,11 @@ export function RiskSurface({
   riskFlags,
   risk,
   ticket,
+  standingRules,
+  standing,
+  capital,
+  hotSeat,
+  onToggleHotSeat,
 }: RiskProps) {
   return (
     <section className="surface" aria-labelledby="risk-title">
@@ -101,7 +117,7 @@ export function RiskSurface({
         Risk
       </h1>
       <p className="surface-sub">
-        Risk Guard loop flags, pre-ticket soft-checks, kill-switch status.
+        Standing % of capital rules, Risk Guard flags, kill switch, hot seat.
       </p>
       <div className="panel-grid">
         <div className="panel">
@@ -122,14 +138,51 @@ export function RiskSurface({
           >
             {killed ? 'Resume desk' : 'Engage kill switch'}
           </button>
+          <button
+            type="button"
+            className={`btn ${hotSeat ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ marginTop: '0.65rem' }}
+            onClick={onToggleHotSeat}
+          >
+            {hotSeat ? 'Hot seat ON' : 'Enable hot seat'}
+          </button>
         </div>
         <div className="panel">
           <div className="panel-head">
-            <span className="panel-label">Size limits</span>
-            <span className="panel-status muted">soft blocks</span>
+            <span className="panel-label">Standing rules</span>
+            <span
+              className={`panel-status ${standing.blocked ? 'muted' : ''}`}
+            >
+              {standing.blocked ? 'BLOCK' : 'armed'}
+            </span>
           </div>
           <ul className="limit-list">
-            {SIZE_LIMITS.map((lim) => (
+            <li>
+              <span>Max notional % BP</span>
+              <span>
+                {formatPct(standingRules.maxNotionalPctOfBuyingPower)} → $
+                {standing.caps.maxNotionalDollars.toFixed(2)}
+              </span>
+            </li>
+            <li>
+              <span>Max day loss % equity</span>
+              <span>
+                {formatPct(standingRules.maxDayLossPctOfEquity)} → $
+                {standing.caps.maxDayLossDollars.toFixed(2)}
+              </span>
+            </li>
+            <li>
+              <span>Symbols</span>
+              <span>{standingRules.allowedSymbolsMode}</span>
+            </li>
+            <li>
+              <span>Live BP / equity</span>
+              <span>
+                ${capital.buyingPower.toFixed(2)} / $
+                {capital.totalValue.toFixed(2)}
+              </span>
+            </li>
+            {SIZE_LIMITS.slice(0, 1).map((lim) => (
               <li key={lim.label}>
                 <span>{lim.label}</span>
                 <span>{lim.value}</span>
@@ -137,7 +190,7 @@ export function RiskSurface({
             ))}
           </ul>
           <div className="panel-foot">
-            RH as-of {RH_AS_OF} · soft blocks only · no auto-place.
+            RH as-of {RH_AS_OF} · hard blocks outside rules · confirm always.
           </div>
         </div>
         <div className="panel">

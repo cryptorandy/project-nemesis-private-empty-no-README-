@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
 import {
   ideaToStagedFields,
@@ -18,11 +18,20 @@ import {
 } from './components/surfaces'
 import { TicketRail } from './components/TicketRail'
 import { INITIAL_AUDIT, INITIAL_TICKET } from './data/mock'
-import { RH_BOARD, RH_CRYPTO } from './data/rh-snapshot'
+import { allowedUnderlyings } from './data/options-scan'
+import { RH_BOARD, RH_CRYPTO, RH_WATCHLIST } from './data/rh-snapshot'
 import { useLiveDesk } from './hooks/useLiveDesk'
 import { appendAudit, sealAudit } from './lib/auditLog'
-import { mockPlaceOrder } from './lib/mockPlace'
+import { placeAfterConfirm } from './lib/placeOrder'
 import { runRiskSoftChecks } from './lib/riskChecks'
+import { toRhEquityParams, toRhOptionParams } from './lib/rhOrderParams'
+import {
+  buildAllowedUniverse,
+  capitalFromPortfolio,
+  defaultStandingRules,
+  evaluateStandingRules,
+  type StandingRules,
+} from './lib/standingRules'
 import type {
   AuditEntry,
   Surface,
@@ -37,6 +46,19 @@ const SURFACES: { id: Surface; label: string }[] = [
   { id: 'risk', label: 'Risk' },
   { id: 'audit', label: 'Audit' },
 ]
+
+const DAY_PNL_KEY = 'nemesis.sessionDayPnl'
+
+function readDayPnl(): number {
+  try {
+    const raw = sessionStorage.getItem(DAY_PNL_KEY)
+    if (raw == null) return 0
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : 0
+  } catch {
+    return 0
+  }
+}
 
 function lookupMark(symbol: string, ticket?: TicketDraft): number | null {
   if (ticket?.asset === 'Option' && ticket.limit > 0) return ticket.limit
@@ -62,13 +84,78 @@ function App() {
   const [optionIdeas, setOptionIdeas] = useState<OptionBuyIdea[]>(() =>
     rankOptionBuyIdeas(),
   )
+  const [hotSeat, setHotSeat] = useState(false)
+  const [standingRules, setStandingRules] = useState<StandingRules>(() =>
+    defaultStandingRules(),
+  )
+  const [dayPnl] = useState(readDayPnl)
+  const [userLockedTicket, setUserLockedTicket] = useState(false)
 
   const live = useLiveDesk(killed)
-  const liveMark = lookupMark(ticket.symbol, ticket)
-  const risk = useMemo(
-    () => runRiskSoftChecks(ticket, liveMark ?? undefined),
-    [ticket, liveMark],
+  const liveMark =
+    ticket.asset === 'Option'
+      ? lookupMark(ticket.symbol, ticket)
+      : (live.board.find((q) => q.symbol === ticket.symbol)?.price ??
+        live.crypto.find((q) => q.symbol === ticket.symbol)?.price ??
+        lookupMark(ticket.symbol, ticket))
+
+  const capital = useMemo(
+    () => capitalFromPortfolio(live.portfolio, dayPnl),
+    [live.portfolio, dayPnl],
   )
+
+  const allowedUniverse = useMemo(
+    () =>
+      buildAllowedUniverse({
+        boardSymbols: [
+          ...live.board.map((q) => q.symbol),
+          ...live.crypto.map((q) => q.symbol),
+          ...live.indices.map((q) => q.symbol),
+          ...allowedUnderlyings(),
+        ],
+        positionSymbols: live.positions.map((p) => p.symbol),
+        watchlistSymbols: RH_WATCHLIST.symbols,
+        extraAllowedSymbols: standingRules.extraAllowedSymbols,
+      }),
+    [
+      live.board,
+      live.crypto,
+      live.indices,
+      live.positions,
+      standingRules.extraAllowedSymbols,
+    ],
+  )
+
+  const standing = useMemo(
+    () =>
+      evaluateStandingRules(
+        ticket,
+        standingRules,
+        capital,
+        liveMark ?? 0,
+        allowedUniverse,
+      ),
+    [ticket, standingRules, capital, liveMark, allowedUniverse],
+  )
+
+  const risk = useMemo(
+    () =>
+      runRiskSoftChecks(ticket, liveMark ?? undefined, {
+        maxPctBuyingPowerPerTrade: standingRules.maxNotionalPctOfBuyingPower,
+        maxDayLossPctOfAccount: standingRules.maxDayLossPctOfEquity,
+        watchlistOnly: standingRules.allowedSymbolsMode === 'watchlist_only',
+        buyingPower: live.portfolio.buyingPower,
+        totalValue: live.portfolio.totalValue,
+        extraAllowed: [
+          ...standingRules.extraAllowedSymbols,
+          ...[...allowedUniverse],
+        ],
+      }),
+    [ticket, liveMark, standingRules, live.portfolio, allowedUniverse],
+  )
+
+  const standingBlocked =
+    standing.blocked || risk.checks.some((c) => c.level === 'block')
 
   const pushAudit = useCallback(
     (entity: string, action: AuditEntry['action'], details: string) => {
@@ -77,8 +164,33 @@ function App() {
     [],
   )
 
+  const phaseRef = useRef(phase)
+  const gateRef = useRef(gateOpen)
+  const userLockRef = useRef(userLockedTicket)
+  phaseRef.current = phase
+  gateRef.current = gateOpen
+  userLockRef.current = userLockedTicket
+
   const applyStaged = useCallback(
     (staged: StagedTicket, entity: string) => {
+      const fromScanner =
+        staged.stagedBy === 'scan' ||
+        staged.stagedBy === 'flow' ||
+        staged.stagedBy === 'options-scan'
+      if (
+        gateRef.current ||
+        phaseRef.current === 'previewed' ||
+        phaseRef.current === 'confirmed'
+      ) {
+        pushAudit(
+          entity,
+          'brief',
+          `Stage held (ticket busy) · ${staged.symbol} ${staged.qty}`,
+        )
+        return
+      }
+      if (staged.stagedBy === 'exec' && userLockRef.current) return
+
       setTicket({
         asset: staged.asset,
         side: staged.side,
@@ -90,9 +202,11 @@ function App() {
         optionRight: staged.optionRight,
         optionStrike: staged.optionStrike,
         optionExpiry: staged.optionExpiry,
+        optionId: staged.optionId,
       })
       setPhase('draft')
       setPreview(null)
+      setUserLockedTicket(fromScanner ? false : userLockRef.current)
       setStagedNote(staged.reason)
       pushAudit(
         entity,
@@ -116,11 +230,11 @@ function App() {
       applyStaged(
         {
           ...fields,
-          stagedBy: 'flow',
+          stagedBy: 'options-scan',
           stagedAt: new Date().toISOString(),
           ideaId: idea.id,
         },
-        'Options Flow',
+        'Options Scan',
       )
       setSurface('board')
     },
@@ -129,7 +243,10 @@ function App() {
 
   const onSwarmAudit = useCallback(
     (entity: string, action: 'brief' | 'scan' | 'risk', details: string) => {
-      if (action === 'risk' || /escalate|soft block|prints|Staged|BUY/i.test(details)) {
+      if (
+        action === 'risk' ||
+        /escalate|soft block|prints|Staged|BUY/i.test(details)
+      ) {
         pushAudit(entity, action, details)
       }
     },
@@ -163,19 +280,58 @@ function App() {
     })
   }
 
+  function toggleHotSeat() {
+    setHotSeat((prev) => {
+      const next = !prev
+      pushAudit(
+        'Randy',
+        'hotseat',
+        next
+          ? 'Hot seat ON — one-tap confirm per order (still explicit)'
+          : 'Hot seat OFF — full confirm gate',
+      )
+      return next
+    })
+  }
+
+  function patchRules(patch: Partial<StandingRules>) {
+    setStandingRules((r) => ({ ...r, ...patch }))
+    if (phase === 'previewed' || phase === 'confirmed') {
+      setPhase('draft')
+      setPreview(null)
+    }
+  }
+
   function enterDesk(withKill = false) {
     setEntered(true)
     if (withKill && !killed) toggleKill()
   }
 
   function patchTicket(patch: Partial<TicketDraft>) {
+    setUserLockedTicket(true)
     setTicket((t) => {
       const next = { ...t, ...patch }
       if (patch.asset === 'Crypto' && !patch.symbol) {
         if (t.symbol !== 'BTC' && t.symbol !== 'ETH') next.symbol = 'BTC'
       }
-      if (patch.symbol) {
-        const m = lookupMark(patch.symbol)
+      if (patch.asset === 'Option') {
+        if (patch.optionRight == null && !t.optionRight) next.optionRight = 'Call'
+        if (patch.optionStrike == null && t.optionStrike == null) {
+          next.optionStrike = 170
+        }
+        if (patch.optionExpiry == null && !t.optionExpiry) {
+          next.optionExpiry = '2026-11-21'
+        }
+        if (patch.limit == null && (t.asset !== 'Option' || t.limit > 1)) {
+          next.limit = 0.05
+        }
+        next.qty = Math.max(1, Math.floor(patch.qty ?? (t.qty < 1 ? 1 : t.qty)))
+        if (patch.order == null) next.order = 'Limit'
+      }
+      if (patch.symbol && next.asset === 'Equity') {
+        const m =
+          live.board.find((q) => q.symbol === patch.symbol)?.price ??
+          lookupMark(patch.symbol)
         if (m != null && next.order === 'Limit' && patch.limit == null) {
           next.limit = Number(m.toFixed(2))
         }
@@ -192,7 +348,8 @@ function App() {
   function pickSymbol(symbol: string) {
     const asset =
       symbol === 'BTC' || symbol === 'ETH' ? 'Crypto' : ('Equity' as const)
-    const mark = lookupMark(symbol)
+    const mark =
+      live.board.find((q) => q.symbol === symbol)?.price ?? lookupMark(symbol)
     patchTicket({
       symbol,
       asset,
@@ -202,7 +359,22 @@ function App() {
   }
 
   function previewTicket() {
-    const report = runRiskSoftChecks(ticket, liveMark ?? undefined)
+    if (standingBlocked) {
+      pushAudit(
+        'Risk Guard',
+        'rules-block',
+        `Preview refused · standing/risk block`,
+      )
+      return
+    }
+    const report = runRiskSoftChecks(ticket, liveMark ?? undefined, {
+      maxPctBuyingPowerPerTrade: standingRules.maxNotionalPctOfBuyingPower,
+      maxDayLossPctOfAccount: standingRules.maxDayLossPctOfEquity,
+      watchlistOnly: standingRules.allowedSymbolsMode === 'watchlist_only',
+      buyingPower: live.portfolio.buyingPower,
+      totalValue: live.portfolio.totalValue,
+      extraAllowed: [...allowedUniverse],
+    })
     const id = `pv-${Date.now().toString(36)}`
     const px =
       ticket.order === 'Market'
@@ -213,46 +385,64 @@ function App() {
         ? ` ${ticket.optionRight ?? 'Call'} ${ticket.optionStrike ?? '?'} ${ticket.optionExpiry ?? ''}`
         : ''
     const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits} ${ticket.asset} ${ticket.order} ${px} TIF ${ticket.tif}`
+
+    let reviewNote = 'Local review · RH MCP review_* on agent bridge'
+    if (ticket.asset === 'Equity') {
+      const p = toRhEquityParams(ticket)
+      reviewNote = `RH-shaped equity · ${p.side} ${p.quantity} ${p.symbol} ${p.type}`
+    } else if (ticket.asset === 'Option') {
+      const p = toRhOptionParams(ticket)
+      reviewNote =
+        'error' in p
+          ? p.error
+          : `RH-shaped option · ${p.quantity}× ${p.legs[0]?.option_id.slice(0, 8)}…`
+    }
+
     const nextPreview: TicketPreview = {
       id,
       at: new Date().toISOString(),
       notional: report.notional,
       mark: liveMark ?? report.mark,
       summary,
-      mode: 'mock',
+      mode: 'rh-review',
+      reviewNote,
     }
     setPreview(nextPreview)
     setPhase('previewed')
     pushAudit(
       'Execution Prep',
       'preview',
-      `Mock preview ${id} · ${summary} (no Robinhood place)`,
+      `Preview ${id} · ${summary} · ${reviewNote}`,
     )
     pushAudit(
       'Risk Guard',
       'risk-check',
-      `Soft-check ${report.worst} · notional $${report.notional.toFixed(2)} · ${report.checks.filter((c) => c.level !== 'pass').map((c) => c.id).join(',') || 'all clear'}`,
+      `Standing+soft ${report.worst} · notional $${report.notional.toFixed(2)} · cap $${standing.caps.maxNotionalDollars.toFixed(2)}`,
     )
   }
 
-  /**
-   * Sole place entrypoint. Invoked only from ConfirmGate after human ack.
-   * Uses mockPlaceOrder — never Robinhood place-order.
-   */
-  function confirmAndMockPlace() {
+  function confirmAndPlace() {
     if (killed || phase !== 'previewed' || !preview) return
-    const result = mockPlaceOrder(ticket)
+    if (standingBlocked) {
+      pushAudit('Risk Guard', 'rules-block', 'Confirm refused · standing block')
+      return
+    }
+    const result = placeAfterConfirm(ticket, { preferLiveIntent: true })
+    if (!result.ok) {
+      pushAudit('Execution Prep', 'rules-block', result.reason)
+      return
+    }
     setPhase('confirmed')
     setGateOpen(false)
     pushAudit(
       'Randy',
-      'confirm-mock',
-      `Human confirmed ${preview.id} · ${result.summary}`,
+      result.mode === 'live-intent' ? 'confirm-live' : 'confirm-mock',
+      `Human confirmed ${preview.id} · ${result.summary}${hotSeat ? ' · hot seat' : ''}`,
     )
     pushAudit(
       'Execution Prep',
-      'place-mock',
-      `${result.orderId} · ${result.note} · ${result.placedAt}`,
+      result.mode === 'live-intent' ? 'place-live-intent' : 'place-mock',
+      `${result.orderId} · ${result.note}`,
     )
   }
 
@@ -261,6 +451,7 @@ function App() {
     setPhase('draft')
     setPreview(null)
     setStagedNote(null)
+    setUserLockedTicket(false)
   }
 
   if (!entered) {
@@ -281,7 +472,9 @@ function App() {
           </div>
           <div className="brand-text">
             <span className="brand-name">Project Nemesis</span>
-            <span className="brand-sub">TV desk · swarm · pro execution</span>
+            <span className="brand-sub">
+              TV desk · fast path · % capital rules
+            </span>
           </div>
         </div>
         <nav className="nav" aria-label="Desk surfaces" role="tablist">
@@ -298,6 +491,14 @@ function App() {
             </button>
           ))}
         </nav>
+        <button
+          type="button"
+          className={`hotseat-header ${hotSeat ? 'on' : ''}`}
+          onClick={toggleHotSeat}
+          title="Session hot seat — one-tap confirm"
+        >
+          Hot seat
+        </button>
         <button
           type="button"
           className={`kill-header ${killed ? 'engaged' : ''}`}
@@ -361,6 +562,11 @@ function App() {
             riskFlags={swarm.riskFlags}
             risk={risk}
             ticket={ticket}
+            standingRules={standingRules}
+            standing={standing}
+            capital={capital}
+            hotSeat={hotSeat}
+            onToggleHotSeat={toggleHotSeat}
           />
         )}
         {surface === 'audit' && <AuditSurface entries={audit} />}
@@ -371,15 +577,24 @@ function App() {
           preview={preview}
           risk={risk}
           killed={killed}
+          hotSeat={hotSeat}
+          standingRules={standingRules}
+          standing={standing}
+          capital={capital}
+          allowedCount={allowedUniverse.size}
           stagedNote={stagedNote}
           liveMark={liveMark}
           onChange={patchTicket}
           onPreview={previewTicket}
           onOpenGate={() => {
-            if (phase === 'previewed' && !killed) setGateOpen(true)
+            if (phase === 'previewed' && !killed && !standingBlocked) {
+              setGateOpen(true)
+            }
           }}
           onCancel={resetDraft}
           onNewDraft={resetDraft}
+          onRulesChange={patchRules}
+          onToggleHotSeat={toggleHotSeat}
         />
       </div>
 
@@ -390,8 +605,10 @@ function App() {
           risk={risk}
           killed={killed}
           previewed={phase === 'previewed'}
+          hotSeat={hotSeat}
+          standingBlocked={standingBlocked}
           onBack={() => setGateOpen(false)}
-          onConfirm={confirmAndMockPlace}
+          onConfirm={confirmAndPlace}
         />
       )}
     </div>

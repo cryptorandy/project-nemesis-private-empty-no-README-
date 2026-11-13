@@ -8,8 +8,10 @@ type ConfirmGateProps = {
   risk: RiskReport
   killed: boolean
   previewed: boolean
+  hotSeat: boolean
+  standingBlocked: boolean
   onBack: () => void
-  /** Sole path into mock place — never call place outside this handler. */
+  /** Sole path into place — never call place outside this handler. */
   onConfirm: () => void
 }
 
@@ -19,6 +21,8 @@ export function ConfirmGate({
   risk,
   killed,
   previewed,
+  hotSeat,
+  standingBlocked,
   onBack,
   onConfirm,
 }: ConfirmGateProps) {
@@ -27,38 +31,49 @@ export function ConfirmGate({
 
   const optBits =
     ticket.asset === 'Option'
-      ? ` ${ticket.optionRight ?? 'Call'} ${ticket.optionStrike ?? '?'} ${ticket.optionExpiry ?? ''}`
+      ? ` ${ticket.optionRight ?? 'Call'} ${ticket.optionStrike ?? ''} ${ticket.optionExpiry ?? ''}`.trim()
       : ''
-  const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits} (${ticket.asset})`
-  const hardBlocked = killed || !previewed || !preview
-  const softNeedsAck = risk.needsAck
+  const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits ? ` · ${optBits}` : ''}`
+  const hardBlocked = killed || !previewed || !preview || standingBlocked
+  const softNeedsAck = risk.needsAck && !hotSeat
   const canConfirm =
-    !hardBlocked && ackHuman && (!softNeedsAck || ackRisk)
+    !hardBlocked &&
+    (hotSeat || (ackHuman && (!softNeedsAck || ackRisk)))
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onBack}>
       <div
-        className="modal modal-gate"
+        className={`modal modal-gate ${hotSeat ? 'hotseat' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="gate-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="modal-kicker">Hard confirm gate</p>
-        <h2 id="gate-title">Human must confirm</h2>
+        <p className="modal-kicker">
+          {hotSeat ? 'Hot seat · one-tap confirm' : 'Hard confirm gate'}
+        </p>
+        <h2 id="gate-title">
+          {hotSeat ? 'Confirm this order' : 'Human must confirm'}
+        </h2>
         <p>
-          You are about to <strong>mock-place</strong>{' '}
-          <code>{summary}</code>. This UI does <strong>not</strong> call
-          Robinhood place-order. Live place stays offline (
-          <code>ALLOW_LIVE_PLACE=false</code>).
+          Explicit confirm for <strong>{summary}</strong>. Standing % rules
+          enforced. Never unsupervised — this tap is required every order.
+          {ticket.asset === 'Equity'
+            ? ' Equity → RH review_equity_order / place_equity_order after confirm.'
+            : ticket.asset === 'Option'
+              ? ' Option → RH review_option_order / place_option_order after confirm.'
+              : ''}
         </p>
 
         {preview && (
           <div className="gate-preview">
-            <div className="preview-kicker">Staged preview · {preview.id}</div>
+            <div className="preview-kicker">
+              Staged preview · {preview.id} · {preview.mode}
+            </div>
             <div>{preview.summary}</div>
             <div className="preview-foot">
               Est. notional ${preview.notional.toFixed(2)} · TIF {ticket.tif}
+              {preview.reviewNote ? ` · ${preview.reviewNote}` : ''}
             </div>
           </div>
         )}
@@ -66,14 +81,23 @@ export function ConfirmGate({
         <ul className="gate-list">
           <li>
             <span className={`gate-pip ${previewed ? '' : 'off'}`} />
-            Preview completed (mock) — Confirm disabled without it
+            Preview completed — Confirm disabled without it
+          </li>
+          <li>
+            <span className={`gate-pip ${standingBlocked ? 'off' : ''}`} />
+            Standing rules{' '}
+            {standingBlocked ? 'BLOCKED — outside % / allowlist' : 'clear'}
           </li>
           <li>
             <span
               className={`gate-pip ${risk.worst === 'pass' ? '' : 'warn'}`}
             />
             Risk soft-check · {risk.worst}
-            {softNeedsAck ? ' · acknowledge required' : ' · clear'}
+            {softNeedsAck
+              ? ' · acknowledge required'
+              : hotSeat
+                ? ' · hot seat'
+                : ' · clear'}
           </li>
           <li>
             <span className={`gate-pip ${killed ? 'off' : ''}`} />
@@ -81,11 +105,11 @@ export function ConfirmGate({
           </li>
           <li>
             <span className="gate-pip" />
-            Place path = this gate only · mock until RH write is safe
+            Place path = this gate only · one confirm per order
           </li>
         </ul>
 
-        {softNeedsAck && (
+        {!hotSeat && softNeedsAck && (
           <div className="gate-risk-box">
             <div className="risk-panel-head">
               <span>Soft flags</span>
@@ -111,20 +135,29 @@ export function ConfirmGate({
                 disabled={hardBlocked}
                 onChange={(e) => setAckRisk(e.target.checked)}
               />
-              I acknowledge soft risk flags for this mock place
+              I acknowledge soft risk flags for this place
             </label>
           </div>
         )}
 
-        <label className="gate-ack">
-          <input
-            type="checkbox"
-            checked={ackHuman}
-            disabled={hardBlocked}
-            onChange={(e) => setAckHuman(e.target.checked)}
-          />
-          I am Randy (or authorized) and explicitly confirm this ticket
-        </label>
+        {!hotSeat && (
+          <label className="gate-ack">
+            <input
+              type="checkbox"
+              checked={ackHuman}
+              disabled={hardBlocked}
+              onChange={(e) => setAckHuman(e.target.checked)}
+            />
+            I am Randy (or authorized) and explicitly confirm this ticket
+          </label>
+        )}
+
+        {hotSeat && (
+          <p className="hotseat-note">
+            Hot seat armed — one tap places the confirm. Kill switch or standing
+            blocks still lock this button.
+          </p>
+        )}
 
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onBack}>
@@ -136,7 +169,7 @@ export function ConfirmGate({
             disabled={!canConfirm}
             onClick={onConfirm}
           >
-            Confirm · mock place
+            {hotSeat ? 'Confirm · one tap' : 'Confirm · place'}
           </button>
         </div>
       </div>
