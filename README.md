@@ -30,6 +30,14 @@ npm run preview
 
 See [docs/live-vs-mock.md](docs/live-vs-mock.md) for live vs mock detail.
 
+## Hosted URL
+
+Production: https://project-nemesis.apps.grok.bot
+
+If the app was published **private/team**, unauthenticated browsers get a Grok/Cursor sign-in gate (looks almost empty until you authorize). Sign in with the owning Grok Bot account, or republish as **public** for open load.
+
+Fonts are self-hosted (no Google Fonts CDN) so first paint is not blocked on external CSS.
+
 ## Safety
 
 Orders are **never** placed by this UI. Preview and confirm are mock-only. Hosted app cannot call Robinhood MCP at runtime; agents refresh the snapshot when MCP is reachable.
