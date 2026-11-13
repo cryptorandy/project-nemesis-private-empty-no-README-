@@ -2,7 +2,7 @@
 
 Mixed equities / options / crypto **research + execution desk**. Specialist agents run real timed loops; Randy confirms every ticket.
 
-TV-style trading board over a Robinhood MCP bake + poll path, plus a **real agent swarm** that writes briefs into desk state. **Fast path:** editable standing % of capital + hot-seat one-tap confirm → RH-shaped live-intent (never unsupervised).
+TV-style trading board over a **live RH book feed** (`/api/book` agent ingest + ~30s poll) with static bake fallback, plus a **real agent swarm** that writes briefs into desk state. **Fast path:** editable standing % of capital + hot-seat one-tap confirm → RH-shaped live-intent (never unsupervised).
 
 ## Run locally
 
@@ -22,8 +22,8 @@ npm run preview
 
 - Brand-first hero (orbit atmosphere does **not** steal clicks)
 - Dense Board: indices · tape · P&L · quotes · positions · crypto · **ranked options buys (Greeks)** · agent swarm · activity · Chief brief bar
-- **Layer 1 market truth:** agents bake RH MCP into `public/data/market.json`; UI polls it; TS fallback in `src/data/rh-snapshot.ts`
-- Clear **as of** timestamps + graceful degrade when poll fails
+- **Layer 1 live book:** agents push RH MCP positions/portfolio to `POST /api/book`; desk polls every ~30s (fallback `public/data/book.json` + market bake)
+- Clear **as of** timestamps + stale after ~3m + graceful degrade when poll fails
 - **Layer 2 real agent loops** (Desk Chief → Execution Prep) writing briefs from RH MCP context + heuristics
 - **Options scanner:** RH chains/quotes bake with **Δ/Γ/Θ/ν + IV** hard-required; ranked buys; one-tap Stage
 - Activity wall shows real loop outputs (not canned status theater)
@@ -45,18 +45,25 @@ If the app was published **private/team**, unauthenticated browsers get a Grok/C
 
 Fonts are self-hosted (no Google Fonts CDN) so first paint is not blocked on external CSS.
 
-## Refresh market bake (agents)
+## Live book refresh (agents — preferred)
 
 ```bash
-# After pulling RH MCP during an agent run, write JSON (+ optional TS sync):
+# 1) Pull RH MCP (get_portfolio / get_equity_positions / quotes) → build scrubbed book:
+node scripts/build-book-from-rh.mjs < /path/to/rh-input.json > /tmp/book.json
+# 2) Push to the private app (no human republish):
+BOOK_INGEST_SECRET=… CURSOR_APP_TOKEN=… npm run push-live-book < /tmp/book.json
+```
+
+Desk polls `/api/book` ~every 30s while open. Static bake remains a cold-start fallback:
+
+```bash
 node scripts/refresh-market.mjs --from-stdin --write-ts < /path/to/snapshot.json
-# Or validate the committed bake:
 node scripts/refresh-market.mjs
 ```
 
 ## Safety
 
-Orders are **never** placed without explicit ConfirmGate confirm (hot seat = one tap, still per-order). Standing % rules hard-block outside caps. Options ideas stage only — Randy confirms. Hosted app cannot call Robinhood MCP at runtime — confirm queues RH-shaped live-intent for agent `review_*` / `place_*` on MCP ••••0788. Agents never auto-place. Keep the published app **private**.
+Orders are **never** placed without explicit ConfirmGate confirm (hot seat = one tap, still per-order). Standing % rules hard-block outside caps. Options ideas stage only — Randy confirms. Hosted app cannot call Robinhood MCP at runtime — confirm queues RH-shaped live-intent for agent `review_*` / `place_*` on MCP ••••0788 (account number resolved by agents, masked in UI). Agents never auto-place. Keep the published app **private**.
 
 ## Repo note
 

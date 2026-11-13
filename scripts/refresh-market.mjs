@@ -181,7 +181,7 @@ async function main() {
   }
 
   console.log(
-    '[refresh-market] hosted limit: browser cannot call RH MCP; redeploy or push refreshed market.json + book.json for new marks',
+    '[refresh-market] static bake updated — prefer POST /api/book (push-live-book.mjs) for continuous desk truth without republish',
   )
 }
 

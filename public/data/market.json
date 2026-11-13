@@ -1,41 +1,41 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-13T15:17:57Z",
+  "asOf": "2026-11-13T15:40:25Z",
   "refreshedBy": "agent-mcp",
   "accountMasked": "••••0788",
-  "sourceNote": "RH MCP bake · desk polls /data/book.json (positions) + /data/market.json; MCP unavailable in browser",
+  "sourceNote": "RH MCP bake · desk polls /api/book (live) + /data/market.json; agents ingest book without republish",
   "degraded": false,
   "portfolio": {
-    "totalValue": 384.26,
-    "equityValue": 120.61,
-    "optionsValue": 125,
-    "cash": 138.65,
-    "buyingPower": 138.65,
+    "totalValue": 381.18,
+    "equityValue": 118.58,
+    "optionsValue": 28,
+    "cash": 234.6,
+    "buyingPower": 234.6,
     "accountMasked": "••••0788"
   },
   "indices": [
     {
       "symbol": "SPY",
       "name": "S&P 500",
-      "price": 749.71,
+      "price": 749.8,
       "prevClose": 757.12,
-      "changePct": -0.98,
+      "changePct": -0.97,
       "source": "rh"
     },
     {
       "symbol": "QQQ",
       "name": "Nasdaq 100",
-      "price": 675.62,
+      "price": 673.055,
       "prevClose": 688.17,
-      "changePct": -1.82,
+      "changePct": -2.2,
       "source": "rh"
     },
     {
       "symbol": "IWM",
       "name": "Russell 2000",
-      "price": 275.44,
+      "price": 275.86,
       "prevClose": 278.44,
-      "changePct": -1.08,
+      "changePct": -0.93,
       "source": "rh"
     }
   ],
@@ -43,84 +43,84 @@
     {
       "symbol": "NVDA",
       "name": "NVIDIA",
-      "price": 160.555,
+      "price": 159.17,
       "prevClose": 166.19,
-      "changePct": -3.39,
+      "changePct": -4.22,
       "source": "rh",
       "note": "Holding"
     },
     {
       "symbol": "AAPL",
       "name": "Apple",
-      "price": 358.334,
+      "price": 358.595,
       "prevClose": 354.88,
-      "changePct": 0.97,
+      "changePct": 1.05,
       "source": "rh"
     },
     {
       "symbol": "TSLA",
       "name": "Tesla",
-      "price": 388.63,
+      "price": 387.52,
       "prevClose": 397.45,
-      "changePct": -2.22,
+      "changePct": -2.5,
       "source": "rh"
     },
     {
       "symbol": "AMD",
       "name": "AMD",
-      "price": 532.7,
+      "price": 526.38,
       "prevClose": 585.3,
-      "changePct": -8.99,
+      "changePct": -10.07,
       "source": "rh"
     },
     {
       "symbol": "MSFT",
       "name": "Microsoft",
-      "price": 520.08,
+      "price": 522.34,
       "prevClose": 523,
-      "changePct": -0.56,
+      "changePct": -0.13,
       "source": "rh"
     },
     {
       "symbol": "AMZN",
       "name": "Amazon",
-      "price": 266.235,
+      "price": 264.935,
       "prevClose": 267.44,
-      "changePct": -0.45,
+      "changePct": -0.94,
       "source": "rh"
     },
     {
       "symbol": "META",
       "name": "Meta",
-      "price": 632,
+      "price": 626.53,
       "prevClose": 623.61,
-      "changePct": 1.35,
+      "changePct": 0.47,
       "source": "rh"
     },
     {
       "symbol": "SOXL",
       "name": "Direxion Semi 3x",
-      "price": 55.915,
+      "price": 53.2,
       "prevClose": 65.53,
-      "changePct": -14.67,
+      "changePct": -18.82,
       "source": "rh",
-      "note": "Position · partial sell"
+      "note": "Position · live book"
     },
     {
       "symbol": "SCHD",
       "name": "Schwab Div",
-      "price": 35.825,
+      "price": 35.95,
       "prevClose": 35.93,
-      "changePct": -0.29,
+      "changePct": 0.06,
       "source": "rh",
       "note": "Position"
     },
     {
       "symbol": "NVDW",
       "name": "Roundhill NVDA Weekly",
-      "price": 23.165,
+      "price": 22.9726,
       "prevClose": 24.17,
-      "changePct": -4.16,
+      "changePct": -4.95,
       "source": "rh",
       "note": "Position"
     },
@@ -183,18 +183,18 @@
     {
       "symbol": "BTC",
       "name": "Bitcoin",
-      "price": 68872.755,
+      "price": 68174.96,
       "prevClose": 68404.11,
-      "changePct": 0.69,
+      "changePct": -0.33,
       "source": "rh",
       "note": "BTC-USD mark"
     },
     {
       "symbol": "ETH",
       "name": "Ethereum",
-      "price": 1942.325,
+      "price": 1915.04,
       "prevClose": 1923.615,
-      "changePct": 0.97,
+      "changePct": -0.45,
       "source": "rh",
       "note": "ETH-USD mark"
     }
@@ -204,37 +204,37 @@
       "symbol": "NVDA",
       "qty": 0.090997,
       "avgCost": 164.84,
-      "mark": 160.555,
-      "value": 14.61,
-      "pnl": -0.39,
-      "pnlPct": -2.6
+      "mark": 159.17,
+      "value": 14.48,
+      "pnl": -0.52,
+      "pnlPct": -3.47
     },
     {
       "symbol": "SOXL",
       "qty": 0.82567,
       "avgCost": 44.95,
-      "mark": 55.915,
-      "value": 46.17,
-      "pnl": 9.06,
-      "pnlPct": 24.41
+      "mark": 53.2,
+      "value": 43.93,
+      "pnl": 6.82,
+      "pnlPct": 18.38
     },
     {
       "symbol": "SCHD",
       "qty": 1,
       "avgCost": 35.91,
-      "mark": 35.825,
-      "value": 35.83,
-      "pnl": -0.08,
-      "pnlPct": -0.22
+      "mark": 35.95,
+      "value": 35.95,
+      "pnl": 0.04,
+      "pnlPct": 0.11
     },
     {
       "symbol": "NVDW",
       "qty": 1.041883,
       "avgCost": 24,
-      "mark": 23.165,
-      "value": 24.14,
-      "pnl": -0.87,
-      "pnlPct": -3.48
+      "mark": 22.9726,
+      "value": 23.93,
+      "pnl": -1.08,
+      "pnlPct": -4.32
     }
   ],
   "watchlist": {
@@ -252,13 +252,14 @@
     ]
   },
   "newsCrawl": [
-    "RH · MCP ••••0788 equity $120.61 · options $125 · cash $138.65",
-    "Book sync · as of 2026-11-13T15:17:57Z · SOXL qty 0.8257 after $10 user sell",
-    "Crypto Pulse · BTC +0.69% · ETH +0.97% vs prior open",
-    "Scanner Watch · SOXL −14.7% session · semi levered stress",
+    "RH · MCP ••••0788 equity $118.58 · options $28 · cash/BP $234.60",
+    "Live book · as of 2026-11-13T15:40:25Z · SOXL qty 0.8257 @ $53.20",
+    "Crypto Pulse · BTC −0.33% · ETH −0.45% vs prior open",
+    "Scanner Watch · SOXL −18.8% session · semi levered stress",
     "Desk Chief · focus NVDA / SOXL / TSLA · human confirms every ticket",
     "Watch · Randy Superstar list XOP ARKW BILL ALL on board",
     "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place",
-    "Execution Prep · fast path · hot seat one-tap · confirm every order"
+    "Execution Prep · fast path · hot seat one-tap · confirm every order",
+    "Feed · /api/book live ingest · no human republish required for positions"
   ]
 }
