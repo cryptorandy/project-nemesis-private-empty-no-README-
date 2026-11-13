@@ -1,62 +1,102 @@
-import type { Agent, AuditEntry, TicketDraft, WatchRow } from '../types'
+import type {
+  ActivityTick,
+  Agent,
+  AgentLoopStatus,
+  AuditEntry,
+  TicketDraft,
+} from '../types'
+import { RH_BOARD, RH_CRYPTO, RH_INDICES } from './rh-snapshot'
 
 export const AGENTS: Agent[] = [
-  { id: 'chief', short: 'CHIEF', name: 'Desk Chief', status: 'orbiting' },
-  { id: 'scan', short: 'SCAN', name: 'Scanner Watch', status: 'active' },
-  { id: 'risk', short: 'RISK', name: 'Risk Guard', status: 'orbiting' },
-  { id: 'earn', short: 'EARN', name: 'Earnings Brief', status: 'orbiting' },
-  { id: 'flow', short: 'FLOW', name: 'Options Flow', status: 'orbiting' },
-  { id: 'cryp', short: 'CRYP', name: 'Crypto Pulse', status: 'orbiting' },
-  { id: 'news', short: 'NEWS', name: 'News / Filings', status: 'orbiting' },
-  { id: 'book', short: 'BOOK', name: 'Portfolio Ops', status: 'active' },
-  { id: 'exec', short: 'EXEC', name: 'Execution Prep', status: 'orbiting' },
+  { id: 'chief', short: 'CHIEF', name: 'Desk Chief', status: 'briefing' },
+  { id: 'scan', short: 'SCAN', name: 'Scanner Watch', status: 'scanning' },
+  { id: 'risk', short: 'RISK', name: 'Risk Guard', status: 'idle' },
+  { id: 'earn', short: 'EARN', name: 'Earnings Brief', status: 'briefing' },
+  { id: 'flow', short: 'FLOW', name: 'Options Flow', status: 'scanning' },
+  { id: 'cryp', short: 'CRYP', name: 'Crypto Pulse', status: 'idle' },
+  { id: 'news', short: 'NEWS', name: 'News / Filings', status: 'scanning' },
+  { id: 'book', short: 'BOOK', name: 'Portfolio Ops', status: 'briefing' },
+  { id: 'exec', short: 'EXEC', name: 'Execution Prep', status: 'idle' },
 ]
 
-export const WATCH: WatchRow[] = [
-  {
-    symbol: 'NVDA',
-    name: 'NVIDIA',
-    note: 'Scanner · volume surge',
-    price: 131.42,
-    changePct: 1.84,
-  },
-  {
-    symbol: 'AAPL',
-    name: 'Apple',
-    note: 'Holding · quiet',
-    price: 228.1,
-    changePct: -0.42,
-  },
-  {
-    symbol: 'TSLA',
-    name: 'Tesla',
-    note: 'Options Flow · call heat',
-    price: 248.55,
-    changePct: 2.11,
-  },
-  {
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    note: 'Crypto Pulse',
-    price: 97420,
-    changePct: 1.22,
-  },
-  {
-    symbol: 'SPY',
-    name: 'S&P 500 ETF',
-    note: 'Desk risk anchor',
-    price: 582.3,
-    changePct: 0.31,
-  },
+export const AGENT_THOUGHTS: Record<string, string[]> = {
+  chief: [
+    'Re-ranking open threads',
+    'Merging scanner + risk briefs',
+    'Desk pulse · no blockers',
+    'Prioritizing NVDA / SOXL / TSLA',
+  ],
+  scan: [
+    'Sweeping volume surge list',
+    'Hit · SOXL AH relative volume',
+    'Watchlist Superstar delta check',
+    'Scanner quiet · holding marks',
+  ],
+  risk: [
+    'Book concentration pass',
+    'Soft limit: notional under cap',
+    'Options notional $105 stub',
+    'Cash / BP snapshot ok',
+  ],
+  earn: [
+    'Calendar near holdings',
+    'Tomorrow print list stub',
+    'NVDA earnings packet idle',
+    'Peer estimate delta stub',
+  ],
+  flow: [
+    'Chain heat on watch names',
+    'TSLA 410c heat flagged',
+    'IV context stub refresh',
+    'Defined-risk ideas queued',
+  ],
+  cryp: [
+    'BTC −3.8% vs prior open',
+    'ETH mark refresh',
+    'Crypto notional under cap',
+    'Pulse · risk budget check',
+  ],
+  news: [
+    'Headline index for watch',
+    'SEC filing index hit stub',
+    '8-K delta queue empty',
+    'Filings quiet · holding',
+  ],
+  book: [
+    'Positions / P&L snapshot',
+    'SOXL unrealized lead',
+    'Drift vs targets · flat',
+    'Book ops tick complete',
+  ],
+  exec: [
+    'Draft ticket rail sync',
+    'Preview quote stub ready',
+    'No place path armed',
+    'Confirm gate standing by',
+  ],
+}
+
+export const STATUS_CYCLE: AgentLoopStatus[] = [
+  'scanning',
+  'briefing',
+  'idle',
+  'scanning',
+  'briefing',
+  'escalate',
+  'idle',
+  'scanning',
 ]
+
+export const WATCH = [...RH_BOARD, ...RH_CRYPTO]
+export const INDICES = RH_INDICES
 
 export const RESEARCH_BRIEF = {
   focus: 'NVDA',
-  headline: 'Volume surge on scanner · soft risk pass',
+  headline: 'AH bid firm · holding micro-lot · soft risk pass',
   bullets: [
-    'Last ~$131.42 · sample quote (not live Robinhood)',
+    'RH last ~$167.94 AH · prev close $166.19',
     'Earnings Brief: next print placeholder — wire MCP later',
-    'Options Flow: call heat flagged on nearby strikes (stub)',
+    'Options Flow stub: 170c elevated IV',
     'Risk Guard: notional under $5k soft limit for draft size',
   ],
 }
@@ -72,32 +112,60 @@ export const INITIAL_TICKET: TicketDraft = {
   asset: 'Equity',
   side: 'Buy',
   symbol: 'NVDA',
-  qty: 10,
+  qty: 1,
   order: 'Limit',
-  limit: 130.5,
+  limit: 167.5,
 }
 
 export const INITIAL_AUDIT: AuditEntry[] = [
   {
-    id: 'a3',
-    time: '09:41:02',
-    entity: 'Desk Chief',
+    id: 'a4',
+    time: '01:03:25',
+    entity: 'Portfolio Ops',
     action: 'brief',
-    details: 'Morning desk brief published (sample)',
+    details: 'RH MCP snapshot loaded · MCP ••••0788',
+  },
+  {
+    id: 'a3',
+    time: '01:03:12',
+    entity: 'Scanner Watch',
+    action: 'scan',
+    details: 'SOXL +2.0% AH annotated on board',
   },
   {
     id: 'a2',
-    time: '09:40:18',
-    entity: 'Scanner Watch',
+    time: '01:02:48',
+    entity: 'Crypto Pulse',
     action: 'scan',
-    details: 'Hit NVDA volume surge → Watch annotation',
+    details: 'BTC/ETH marks refreshed from RH',
   },
   {
     id: 'a1',
-    time: '09:39:55',
+    time: '01:02:10',
     entity: 'Risk Guard',
     action: 'risk',
-    details: 'Soft limits loaded (placeholders)',
+    details: 'Soft limits armed · confirm-before-trade',
+  },
+]
+
+export const INITIAL_ACTIVITY: ActivityTick[] = [
+  {
+    id: 'act-0',
+    time: '01:03:25',
+    agent: 'BOOK',
+    text: 'RH portfolio $352.31 · equity $143.57',
+  },
+  {
+    id: 'act-1',
+    time: '01:03:12',
+    agent: 'SCAN',
+    text: 'SOXL AH surge · board heat',
+  },
+  {
+    id: 'act-2',
+    time: '01:02:48',
+    agent: 'CRYP',
+    text: 'BTC mark $70,845 · −3.8%',
   },
 ]
 

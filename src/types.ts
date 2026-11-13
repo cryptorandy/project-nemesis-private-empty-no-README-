@@ -1,20 +1,43 @@
-export type Surface = 'watch' | 'research' | 'risk' | 'audit'
+export type Surface = 'board' | 'research' | 'risk' | 'audit'
 
-export type AgentStatus = 'orbiting' | 'active' | 'paused'
+/** Live loop statuses shown on the agent rail (mock cycles). */
+export type AgentLoopStatus =
+  | 'scanning'
+  | 'briefing'
+  | 'idle'
+  | 'escalate'
+  | 'paused'
 
 export type Agent = {
   id: string
   short: string
   name: string
-  status: AgentStatus
+  status: AgentLoopStatus
 }
 
-export type WatchRow = {
+export type LiveAgentState = {
+  id: string
+  short: string
+  name: string
+  status: AgentLoopStatus
+  thought: string
+  orbitIndex: number
+}
+
+export type ActivityTick = {
+  id: string
+  time: string
+  agent: string
+  text: string
+}
+
+export type QuoteRow = {
   symbol: string
   name: string
-  note: string
   price: number
   changePct: number
+  note?: string
+  source?: 'rh' | 'mock'
 }
 
 export type TicketAsset = 'Equity' | 'Option' | 'Crypto'
@@ -48,3 +71,6 @@ export type AuditEntry = {
   action: AuditAction
   details: string
 }
+
+/** @deprecated alias for QuoteRow */
+export type WatchRow = QuoteRow

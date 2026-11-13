@@ -2,29 +2,20 @@ import { useState } from 'react'
 import './App.css'
 import { AgentRail } from './components/AgentRail'
 import { ConfirmGate } from './components/ConfirmGate'
+import { DeskBoard } from './components/DeskBoard'
 import { Hero } from './components/Hero'
 import {
   AuditSurface,
   ResearchSurface,
   RiskSurface,
-  WatchSurface,
 } from './components/surfaces'
 import { TicketRail } from './components/TicketRail'
-import {
-  AGENTS,
-  INITIAL_AUDIT,
-  INITIAL_TICKET,
-  nowTime,
-} from './data/mock'
-import type {
-  AuditEntry,
-  Surface,
-  TicketDraft,
-  TicketPhase,
-} from './types'
+import { INITIAL_AUDIT, INITIAL_TICKET, nowTime } from './data/mock'
+import { useLiveDesk } from './hooks/useLiveDesk'
+import type { AuditEntry, Surface, TicketDraft, TicketPhase } from './types'
 
 const SURFACES: { id: Surface; label: string }[] = [
-  { id: 'watch', label: 'Watch' },
+  { id: 'board', label: 'Board' },
   { id: 'research', label: 'Research' },
   { id: 'risk', label: 'Risk' },
   { id: 'audit', label: 'Audit' },
@@ -32,12 +23,15 @@ const SURFACES: { id: Surface; label: string }[] = [
 
 function App() {
   const [entered, setEntered] = useState(false)
-  const [surface, setSurface] = useState<Surface>('watch')
+  const [surface, setSurface] = useState<Surface>('board')
   const [killed, setKilled] = useState(false)
   const [ticket, setTicket] = useState<TicketDraft>(INITIAL_TICKET)
   const [phase, setPhase] = useState<TicketPhase>('draft')
   const [gateOpen, setGateOpen] = useState(false)
   const [audit, setAudit] = useState<AuditEntry[]>(INITIAL_AUDIT)
+  const [focusedAgent, setFocusedAgent] = useState<string | null>(null)
+
+  const live = useLiveDesk(killed)
 
   function pushAudit(
     entity: string,
@@ -79,6 +73,14 @@ function App() {
   function patchTicket(patch: Partial<TicketDraft>) {
     setTicket((t) => ({ ...t, ...patch }))
     if (phase === 'previewed') setPhase('draft')
+  }
+
+  function pickSymbol(symbol: string) {
+    patchTicket({
+      symbol: symbol === 'BTC' || symbol === 'ETH' ? symbol : symbol,
+      asset: symbol === 'BTC' || symbol === 'ETH' ? 'Crypto' : 'Equity',
+    })
+    setSurface('board')
   }
 
   function preview() {
@@ -123,14 +125,16 @@ function App() {
           </div>
           <div className="brand-text">
             <span className="brand-name">Project Nemesis</span>
-            <span className="brand-sub">Trading desk</span>
+            <span className="brand-sub">TV desk · live board</span>
           </div>
         </div>
-        <nav className="nav" aria-label="Desk surfaces">
+        <nav className="nav" aria-label="Desk surfaces" role="tablist">
           {SURFACES.map((s) => (
             <button
               key={s.id}
               type="button"
+              role="tab"
+              aria-selected={surface === s.id}
               className={`nav-btn ${surface === s.id ? 'active' : ''}`}
               onClick={() => setSurface(s.id)}
             >
@@ -147,10 +151,36 @@ function App() {
         </button>
       </header>
 
-      <AgentRail agents={AGENTS} killed={killed} />
+      <AgentRail
+        agents={live.agents}
+        killed={killed}
+        focusedId={focusedAgent}
+        onSelect={(id) =>
+          setFocusedAgent((prev) => (prev === id ? null : id))
+        }
+      />
 
       <div className="desk-body">
-        {surface === 'watch' && <WatchSurface />}
+        {surface === 'board' && (
+          <DeskBoard
+            indices={live.indices}
+            board={live.board}
+            crypto={live.crypto}
+            positions={live.positions}
+            flashKeys={live.flashKeys}
+            activity={live.activity}
+            agents={live.agents}
+            tape={live.tape}
+            newsLine={live.newsLine}
+            clock={live.clock}
+            killed={killed}
+            focusedAgent={focusedAgent}
+            onSelectAgent={(id) =>
+              setFocusedAgent((prev) => (prev === id ? null : id))
+            }
+            onPickSymbol={pickSymbol}
+          />
+        )}
         {surface === 'research' && <ResearchSurface />}
         {surface === 'risk' && (
           <RiskSurface killed={killed} onToggleKill={toggleKill} />

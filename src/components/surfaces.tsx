@@ -1,10 +1,5 @@
-import {
-  formatMoney,
-  formatPct,
-  RESEARCH_BRIEF,
-  SIZE_LIMITS,
-  WATCH,
-} from '../data/mock'
+import { RESEARCH_BRIEF, SIZE_LIMITS } from '../data/mock'
+import { RH_AS_OF, RH_SOURCE_NOTE } from '../data/rh-snapshot'
 import type { AuditEntry } from '../types'
 
 type RiskProps = {
@@ -12,46 +7,15 @@ type RiskProps = {
   onToggleKill: () => void
 }
 
-export function WatchSurface() {
-  return (
-    <section className="surface" aria-labelledby="watch-title">
-      <h1 id="watch-title" className="surface-title">
-        Watch
-      </h1>
-      <p className="surface-sub">
-        Live tape of watchlists + scanner hits — sample data.
-      </p>
-      <div className="watch-list">
-        {WATCH.map((row) => (
-          <div key={row.symbol} className="watch-row">
-            <div className="watch-sym">{row.symbol}</div>
-            <div className="watch-meta">
-              <div className="watch-name">{row.name}</div>
-              <div className="watch-note">{row.note}</div>
-            </div>
-            <div className="watch-px">
-              {formatMoney(row.price)}
-              <span
-                className={`watch-chg ${row.changePct >= 0 ? 'up' : 'down'}`}
-              >
-                {formatPct(row.changePct)}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 export function ResearchSurface() {
   return (
     <section className="surface" aria-labelledby="research-title">
+      <div className="surface-scan" aria-hidden />
       <h1 id="research-title" className="surface-title">
         Research
       </h1>
       <p className="surface-sub">
-        Ticker workspace stub — quotes, briefs, filings hooks later.
+        Ticker workspace — RH snapshot focus · filings hooks later.
       </p>
       <div className="research-card">
         <div className="research-focus">Focus · {RESEARCH_BRIEF.focus}</div>
@@ -61,6 +25,7 @@ export function ResearchSurface() {
             <li key={b}>{b}</li>
           ))}
         </ul>
+        <p className="panel-foot">{RH_SOURCE_NOTE}</p>
       </div>
     </section>
   )
@@ -69,6 +34,7 @@ export function ResearchSurface() {
 export function RiskSurface({ killed, onToggleKill }: RiskProps) {
   return (
     <section className="surface" aria-labelledby="risk-title">
+      <div className="surface-scan" aria-hidden />
       <h1 id="risk-title" className="surface-title">
         Risk
       </h1>
@@ -109,7 +75,7 @@ export function RiskSurface({ killed, onToggleKill }: RiskProps) {
             ))}
           </ul>
           <div className="panel-foot">
-            Editable settings UI ships later · soft blocks only.
+            RH as-of {RH_AS_OF} · soft blocks only · no auto-place.
           </div>
         </div>
       </div>
@@ -124,11 +90,12 @@ type AuditProps = {
 export function AuditSurface({ entries }: AuditProps) {
   return (
     <section className="surface" aria-labelledby="audit-title">
+      <div className="surface-scan" aria-hidden />
       <h1 id="audit-title" className="surface-title">
         Audit log
       </h1>
       <p className="surface-sub">
-        Append-only stub — agent actions, previews, confirms, kill/resume.
+        Append-only — agent actions, previews, confirms, kill/resume.
       </p>
       <table className="audit-table">
         <thead>
