@@ -35,38 +35,49 @@ export const INITIAL_TICKET: TicketDraft = {
   qty: 1,
   order: 'Limit',
   limit: 166.5,
+  tif: 'Day',
 }
 
 export const INITIAL_AUDIT: AuditEntry[] = [
   {
     id: 'a4',
+    seq: 4,
     time: '02:40:33',
     entity: 'Portfolio Ops',
     action: 'brief',
     details: 'RH market.json + agent context · MCP ••••0788',
+    immutable: true,
   },
   {
     id: 'a3',
+    seq: 3,
     time: '02:40:20',
     entity: 'Scanner Watch',
     action: 'scan',
     details: 'Daily gainers scan captured · MOD / CBRS / MU',
+    immutable: true,
   },
   {
     id: 'a2',
+    seq: 2,
     time: '02:40:10',
     entity: 'Earnings Brief',
     action: 'brief',
     details: 'NVDA prints 2026-11-17 pm · est 2.48',
+    immutable: true,
   },
   {
     id: 'a1',
+    seq: 1,
     time: '02:39:55',
     entity: 'Risk Guard',
     action: 'risk',
     details: 'Soft limits armed · confirm-before-trade · no auto-place',
+    immutable: true,
   },
 ]
+
+export const EQUITY_SIZE_PRESETS = [1, 2, 5, 10] as const
 
 export const INITIAL_ACTIVITY: ActivityTick[] = [
   {

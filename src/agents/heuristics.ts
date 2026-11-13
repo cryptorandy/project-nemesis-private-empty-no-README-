@@ -474,6 +474,9 @@ export function runExecPrep(
       notional <= SOFT_LIMITS.maxNotionalPerTicket &&
       notional <= PORTFOLIO_MARKS.buyingPower
     ) {
+      const reason =
+        reasonParts.join(' · ') ||
+        `Routine stage · ${symbol} micro-lot under soft caps`
       staged = {
         asset: 'Equity',
         side: 'Buy',
@@ -481,15 +484,14 @@ export function runExecPrep(
         qty,
         order: 'Limit',
         limit,
-        reason:
-          reasonParts.join(' · ') ||
-          `Routine stage · ${symbol} micro-lot under soft caps`,
+        tif: 'Day',
+        reason,
         stagedBy: 'exec',
         stagedAt: isoNow(),
       }
       severity = 'watch'
       headline = `Staged ${symbol} ${qty}@${limit}`
-      detail = `${staged.reason} · preview required · NEVER place`
+      detail = `${reason} · preview required · NEVER place`
       symbols.push(symbol)
     } else if (loopN % 2 === 0) {
       severity = 'watch'

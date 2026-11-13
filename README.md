@@ -29,7 +29,9 @@ npm run preview
 - Execution Prep **stages** draft tickets only — never places
 - Research / Risk / Audit + Ticket rail
 - Kill switch (pauses all loops + disables confirm)
-- Ticket draft → mock preview → human confirm gate → mock confirm
+- Pro ticket builder (equity first; option/crypto stubs) → mock preview → hard confirm gate → mock place
+- Risk soft-checks (concentration, buying power, size caps) before confirm
+- Immutable append-only audit (preview / risk-check / confirm / place-mock / kill)
 
 See [docs/live-vs-mock.md](docs/live-vs-mock.md).
 
@@ -52,7 +54,7 @@ node scripts/refresh-market.mjs
 
 ## Safety
 
-Orders are **never** placed by agents or this UI’s confirm mock. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json` and swarm context (`src/data/agent-context.ts`) when MCP is reachable, then push/republish.
+Orders are **never** placed by agents or this UI. Preview / confirm / place are mock-only (`ALLOW_LIVE_PLACE=false`). Place runs only through the ConfirmGate path. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json` and swarm context (`src/data/agent-context.ts`) when MCP is reachable, then push/republish.
 
 ## Repo note
 

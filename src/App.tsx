@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import './App.css'
 import { useAgentSwarm } from './agents/useAgentSwarm'
 import type { StagedTicket } from './agents/types'
@@ -12,9 +12,19 @@ import {
   RiskSurface,
 } from './components/surfaces'
 import { TicketRail } from './components/TicketRail'
-import { INITIAL_AUDIT, INITIAL_TICKET, nowTime } from './data/mock'
+import { INITIAL_AUDIT, INITIAL_TICKET } from './data/mock'
+import { RH_BOARD, RH_CRYPTO } from './data/rh-snapshot'
 import { useLiveDesk } from './hooks/useLiveDesk'
-import type { AuditEntry, Surface, TicketDraft, TicketPhase } from './types'
+import { appendAudit, sealAudit } from './lib/auditLog'
+import { mockPlaceOrder } from './lib/mockPlace'
+import { runRiskSoftChecks } from './lib/riskChecks'
+import type {
+  AuditEntry,
+  Surface,
+  TicketDraft,
+  TicketPhase,
+  TicketPreview,
+} from './types'
 
 const SURFACES: { id: Surface; label: string }[] = [
   { id: 'board', label: 'Board' },
@@ -23,31 +33,37 @@ const SURFACES: { id: Surface; label: string }[] = [
   { id: 'audit', label: 'Audit' },
 ]
 
+function lookupMark(symbol: string): number | null {
+  const eq = RH_BOARD.find((q) => q.symbol === symbol)
+  if (eq) return eq.price
+  const crypto = RH_CRYPTO.find((q) => q.symbol === symbol)
+  return crypto ? crypto.price : null
+}
+
 function App() {
   const [entered, setEntered] = useState(false)
   const [surface, setSurface] = useState<Surface>('board')
   const [killed, setKilled] = useState(false)
   const [ticket, setTicket] = useState<TicketDraft>(INITIAL_TICKET)
   const [phase, setPhase] = useState<TicketPhase>('draft')
+  const [preview, setPreview] = useState<TicketPreview | null>(null)
   const [gateOpen, setGateOpen] = useState(false)
-  const [audit, setAudit] = useState<AuditEntry[]>(INITIAL_AUDIT)
+  const [audit, setAudit] = useState<AuditEntry[]>(() =>
+    sealAudit(INITIAL_AUDIT),
+  )
   const [focusedAgent, setFocusedAgent] = useState<string | null>(null)
   const [stagedNote, setStagedNote] = useState<string | null>(null)
 
   const live = useLiveDesk(killed)
+  const liveMark = lookupMark(ticket.symbol)
+  const risk = useMemo(
+    () => runRiskSoftChecks(ticket, liveMark ?? undefined),
+    [ticket, liveMark],
+  )
 
   const pushAudit = useCallback(
     (entity: string, action: AuditEntry['action'], details: string) => {
-      setAudit((prev) => [
-        {
-          id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          time: nowTime(),
-          entity,
-          action,
-          details,
-        },
-        ...prev,
-      ].slice(0, 80))
+      setAudit((prev) => appendAudit(prev, entity, action, details).slice(0, 80))
     },
     [],
   )
@@ -61,8 +77,13 @@ function App() {
         qty: staged.qty,
         order: staged.order,
         limit: staged.limit,
+        tif: staged.tif ?? 'Day',
+        optionRight: staged.optionRight,
+        optionStrike: staged.optionStrike,
+        optionExpiry: staged.optionExpiry,
       })
       setPhase('draft')
+      setPreview(null)
       setStagedNote(staged.reason)
       pushAudit(
         'Execution Prep',
@@ -75,7 +96,6 @@ function App() {
 
   const onSwarmAudit = useCallback(
     (entity: string, action: 'brief' | 'scan' | 'risk', details: string) => {
-      // Only crumb escalate-class risk / scan into audit to keep log readable
       if (action === 'risk' || /escalate|soft block|prints|Staged/i.test(details)) {
         pushAudit(entity, action, details)
       }
@@ -113,41 +133,93 @@ function App() {
   }
 
   function patchTicket(patch: Partial<TicketDraft>) {
-    setTicket((t) => ({ ...t, ...patch }))
-    if (phase === 'previewed') setPhase('draft')
+    setTicket((t) => {
+      const next = { ...t, ...patch }
+      if (patch.asset === 'Crypto' && !patch.symbol) {
+        if (t.symbol !== 'BTC' && t.symbol !== 'ETH') next.symbol = 'BTC'
+      }
+      if (patch.symbol) {
+        const m = lookupMark(patch.symbol)
+        if (m != null && next.order === 'Limit' && patch.limit == null) {
+          next.limit = Number(m.toFixed(2))
+        }
+      }
+      return next
+    })
+    if (phase === 'previewed' || phase === 'confirmed') {
+      setPhase('draft')
+      setPreview(null)
+    }
     setStagedNote(null)
   }
 
   function pickSymbol(symbol: string) {
+    const asset =
+      symbol === 'BTC' || symbol === 'ETH' ? 'Crypto' : ('Equity' as const)
+    const mark = lookupMark(symbol)
     patchTicket({
       symbol,
-      asset: symbol === 'BTC' || symbol === 'ETH' ? 'Crypto' : 'Equity',
+      asset,
+      ...(mark != null ? { limit: Number(mark.toFixed(2)) } : {}),
     })
     setSurface('board')
   }
 
-  function preview() {
+  function previewTicket() {
+    const report = runRiskSoftChecks(ticket, liveMark ?? undefined)
+    const id = `pv-${Date.now().toString(36)}`
+    const px =
+      ticket.order === 'Market'
+        ? `MKT~$${(liveMark ?? report.mark).toFixed(2)}`
+        : `$${ticket.limit.toFixed(2)}`
+    const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol} ${ticket.asset} ${ticket.order} ${px} TIF ${ticket.tif}`
+    const nextPreview: TicketPreview = {
+      id,
+      at: new Date().toISOString(),
+      notional: report.notional,
+      mark: liveMark ?? report.mark,
+      summary,
+      mode: 'mock',
+    }
+    setPreview(nextPreview)
     setPhase('previewed')
     pushAudit(
       'Execution Prep',
       'preview',
-      `Mock preview for ${ticket.symbol} (no Robinhood place)`,
+      `Mock preview ${id} · ${summary} (no Robinhood place)`,
+    )
+    pushAudit(
+      'Risk Guard',
+      'risk-check',
+      `Soft-check ${report.worst} · notional $${report.notional.toFixed(2)} · ${report.checks.filter((c) => c.level !== 'pass').map((c) => c.id).join(',') || 'all clear'}`,
     )
   }
 
-  function confirmMock() {
+  /**
+   * Sole place entrypoint. Invoked only from ConfirmGate after human ack.
+   * Uses mockPlaceOrder — never Robinhood place-order.
+   */
+  function confirmAndMockPlace() {
+    if (killed || phase !== 'previewed' || !preview) return
+    const result = mockPlaceOrder(ticket)
     setPhase('confirmed')
     setGateOpen(false)
     pushAudit(
       'Randy',
       'confirm-mock',
-      `Human confirmed mock ticket ${ticket.symbol} — NO real order placed`,
+      `Human confirmed ${preview.id} · ${result.summary}`,
+    )
+    pushAudit(
+      'Execution Prep',
+      'place-mock',
+      `${result.orderId} · ${result.note} · ${result.placedAt}`,
     )
   }
 
   function resetDraft() {
-    setTicket(INITIAL_TICKET)
+    setTicket({ ...INITIAL_TICKET })
     setPhase('draft')
+    setPreview(null)
     setStagedNote(null)
   }
 
@@ -169,7 +241,7 @@ function App() {
           </div>
           <div className="brand-text">
             <span className="brand-name">Project Nemesis</span>
-            <span className="brand-sub">TV desk · real agent swarm</span>
+            <span className="brand-sub">TV desk · swarm · pro execution</span>
           </div>
         </div>
         <nav className="nav" aria-label="Desk surfaces" role="tablist">
@@ -241,6 +313,8 @@ function App() {
             killed={killed}
             onToggleKill={toggleKill}
             riskFlags={swarm.riskFlags}
+            risk={risk}
+            ticket={ticket}
           />
         )}
         {surface === 'audit' && <AuditSurface entries={audit} />}
@@ -248,11 +322,16 @@ function App() {
         <TicketRail
           ticket={ticket}
           phase={phase}
+          preview={preview}
+          risk={risk}
           killed={killed}
           stagedNote={stagedNote}
+          liveMark={liveMark}
           onChange={patchTicket}
-          onPreview={preview}
-          onOpenGate={() => setGateOpen(true)}
+          onPreview={previewTicket}
+          onOpenGate={() => {
+            if (phase === 'previewed' && !killed) setGateOpen(true)
+          }}
           onCancel={resetDraft}
           onNewDraft={resetDraft}
         />
@@ -261,10 +340,12 @@ function App() {
       {gateOpen && (
         <ConfirmGate
           ticket={ticket}
+          preview={preview}
+          risk={risk}
           killed={killed}
-          previewed={phase === 'previewed' || phase === 'confirmed'}
+          previewed={phase === 'previewed'}
           onBack={() => setGateOpen(false)}
-          onConfirm={confirmMock}
+          onConfirm={confirmAndMockPlace}
         />
       )}
     </div>

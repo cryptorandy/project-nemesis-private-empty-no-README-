@@ -65,8 +65,17 @@ Activity wall, swarm cards, Research, and Risk surfaces read those briefs. Kill 
 ## Still mock / stub
 
 - Options heat board zone (structure stub — separate from Options Flow briefs)
-- Ticket **preview / confirm** UX (mock only — **never** calls place-order)
-- Size-limit numbers are editable placeholders enforced as soft blocks in loops
+- Ticket preview / confirm / place (mock only — **never** calls place-order)
+- Option + crypto ticket fields (stubs; equity is first-class)
+- Size limits + buying-power / concentration soft-checks (placeholders vs baked book)
+
+## Pro execution UX (layer 3)
+
+- **Ticket rail:** equity builder (size chips, side, type, TIF, mark hint) + option/crypto stubs
+- **Risk soft-checks:** concentration %, buying power, notional / option / crypto caps before confirm
+- **Hard confirm gate:** preview required; kill switch locks Confirm; human + soft-flag ack; sole place entrypoint
+- **Mock place:** `src/lib/mockPlace.ts` with `ALLOW_LIVE_PLACE=false` — only called from ConfirmGate
+- **Audit:** append-only sealed rail (`seq`, frozen crumbs) for preview / risk-check / confirm-mock / place-mock / kill
 
 ## Safety
 
