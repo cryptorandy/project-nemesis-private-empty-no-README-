@@ -2,7 +2,7 @@
 
 Mixed equities / options / crypto **research + execution desk**. Specialist agents orbit the book; Randy confirms every ticket.
 
-This repo is the MVP shell: brand-first landing, Watch / Research / Risk / Audit surfaces, 9-agent status rail, kill switch, confirm-before-trade gate, and **mock tickets only** (no Robinhood place-order calls).
+TV-style trading board over a Robinhood MCP snapshot: scrolling tape, indices strip, quote grid, positions/P&L, crypto strip, options heat stub, agent swarm wall, activity + news crawls. Confirm-before-trade only — **no place-order calls**.
 
 ## Run locally
 
@@ -18,19 +18,21 @@ npm run build
 npm run preview
 ```
 
-## What’s in MVP
+## What’s in this build
 
-- Design tokens: graphite / cyan / amber · Space Grotesk + IBM Plex Mono
-- Brand-first hero — **Project Nemesis**
-- Desk shell: Watch · Research · Risk · Audit + Ticket rail
-- 9-agent rail (orbiting / active / paused)
+- Brand-first hero (orbit atmosphere does **not** steal clicks)
+- Dense Board: indices · tape crawl · P&L strip · quote grid · positions · crypto · options heat stub · agent swarm · activity · news crawl
+- Research / Risk / Audit + Ticket rail
+- 9-agent rail with staggered orbit/pulse + status flickers (scanning / briefing / idle / escalate)
 - Kill switch (pauses agents + disables confirm)
 - Ticket draft → mock preview → human confirm gate → mock confirm
-- Append-only audit log stub
+- RH MCP snapshot baked in `src/data/rh-snapshot.ts` + high-frequency live ticks
+
+See [docs/live-vs-mock.md](docs/live-vs-mock.md) for live vs mock detail.
 
 ## Safety
 
-Orders are **never** placed by this UI. Preview and confirm are mock-only. Wire Robinhood MCP reads later; place remains human-gated.
+Orders are **never** placed by this UI. Preview and confirm are mock-only. Hosted app cannot call Robinhood MCP at runtime; agents refresh the snapshot when MCP is reachable.
 
 ## Repo note
 
