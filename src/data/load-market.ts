@@ -12,6 +12,19 @@ import {
 } from './rh-snapshot'
 
 export const MARKET_JSON_URL = '/data/market.json'
+/** Positions + portfolio only — preferred over full market bake when newer. */
+export const BOOK_JSON_URL = '/data/book.json'
+
+export type BookSnapshot = {
+  schemaVersion: number
+  asOf: string
+  refreshedBy: string
+  accountMasked: string
+  sourceNote: string
+  degraded: boolean
+  portfolio: MarketSnapshot['portfolio']
+  positions: MarketSnapshot['positions']
+}
 
 /** Baked fallback when poll fails or is still loading. */
 export function bakedMarketSnapshot(): MarketSnapshot {
@@ -29,6 +42,20 @@ export function bakedMarketSnapshot(): MarketSnapshot {
     positions: RH_POSITIONS.map((p) => ({ ...p })),
     watchlist: { ...RH_WATCHLIST, symbols: [...RH_WATCHLIST.symbols] },
     newsCrawl: [...NEWS_CRAWL],
+  }
+}
+
+export function bakedBookSnapshot(): BookSnapshot {
+  const full = bakedMarketSnapshot()
+  return {
+    schemaVersion: 1,
+    asOf: full.asOf,
+    refreshedBy: full.refreshedBy,
+    accountMasked: full.accountMasked,
+    sourceNote: 'RH MCP book · TS fallback',
+    degraded: full.degraded,
+    portfolio: { ...full.portfolio },
+    positions: full.positions.map((p) => ({ ...p })),
   }
 }
 
@@ -103,6 +130,78 @@ export async function fetchMarketSnapshot(
     return parseMarketSnapshot(raw)
   } catch {
     return null
+  }
+}
+
+/** Loose parse for the lighter positions/portfolio bake. */
+export function parseBookSnapshot(raw: unknown): BookSnapshot | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  if (typeof o.asOf !== 'string' || !o.portfolio || typeof o.portfolio !== 'object') {
+    return null
+  }
+  if (!Array.isArray(o.positions)) return null
+  const portfolio = o.portfolio as Record<string, unknown>
+  return {
+    schemaVersion: typeof o.schemaVersion === 'number' ? o.schemaVersion : 1,
+    asOf: o.asOf,
+    refreshedBy: typeof o.refreshedBy === 'string' ? o.refreshedBy : 'unknown',
+    accountMasked:
+      typeof o.accountMasked === 'string'
+        ? o.accountMasked
+        : String(portfolio.accountMasked ?? '••••'),
+    sourceNote:
+      typeof o.sourceNote === 'string'
+        ? o.sourceNote
+        : 'RH book JSON · positions prefer this over stale market bake',
+    degraded: Boolean(o.degraded),
+    portfolio: {
+      totalValue: Number(portfolio.totalValue) || 0,
+      equityValue: Number(portfolio.equityValue) || 0,
+      optionsValue: Number(portfolio.optionsValue) || 0,
+      cash: Number(portfolio.cash) || 0,
+      buyingPower: Number(portfolio.buyingPower) || 0,
+      accountMasked: String(portfolio.accountMasked ?? '••••'),
+    },
+    positions: o.positions as BookSnapshot['positions'],
+  }
+}
+
+export async function fetchBookSnapshot(
+  signal?: AbortSignal,
+): Promise<BookSnapshot | null> {
+  try {
+    const res = await fetch(BOOK_JSON_URL, {
+      cache: 'no-store',
+      signal,
+    })
+    if (!res.ok) return null
+    const raw: unknown = await res.json()
+    return parseBookSnapshot(raw)
+  } catch {
+    return null
+  }
+}
+
+/** Apply book over market when book asOf is equal or newer. */
+export function mergeBookIntoMarket(
+  market: MarketSnapshot,
+  book: BookSnapshot | null,
+): MarketSnapshot {
+  if (!book) return market
+  const marketMs = new Date(market.asOf).getTime()
+  const bookMs = new Date(book.asOf).getTime()
+  if (!Number.isFinite(bookMs)) return market
+  if (Number.isFinite(marketMs) && bookMs < marketMs) return market
+  return {
+    ...market,
+    asOf: book.asOf,
+    refreshedBy: book.refreshedBy,
+    accountMasked: book.accountMasked,
+    sourceNote: book.sourceNote,
+    degraded: book.degraded || market.degraded,
+    portfolio: { ...book.portfolio },
+    positions: book.positions.map((p) => ({ ...p })),
   }
 }
 

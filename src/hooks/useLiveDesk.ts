@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { nowTime } from '../data/mock'
 import {
   bakedMarketSnapshot,
+  fetchBookSnapshot,
   fetchMarketSnapshot,
   formatAsOfShort,
+  mergeBookIntoMarket,
 } from '../data/load-market'
 import type {
   FeedStatus,
@@ -13,10 +15,12 @@ import type {
 } from '../data/market-types'
 import type { QuoteRow } from '../types'
 
-/** Poll interval for /data/market.json (hosted bake refresh). */
-const POLL_MS = 12_000
+/** Full board poll (quotes + book). */
+const MARKET_POLL_MS = 12_000
+/** Positions/portfolio prefer /data/book.json on a tighter cadence. */
+const BOOK_POLL_MS = 8_000
 /** Marks older than this are labeled stale (agent refresh overdue). */
-const STALE_MS = 30 * 60 * 1000
+const STALE_MS = 15 * 60 * 1000
 
 function toRow(q: MarketQuote): QuoteRow {
   return {
@@ -73,6 +77,8 @@ function deriveFeedStatus(
 
 /**
  * Layer 1 data plane: poll RH MCP bake + gentle tick between refreshes.
+ * Positions/portfolio prefer `/data/book.json` when its asOf is newer than
+ * the full market bake — external RH sells show after the next agent bake+publish.
  * Agent swarm lives in useAgentSwarm — this hook does not own agent theater.
  * Never places orders.
  */
@@ -98,6 +104,7 @@ export function useLiveDesk(killed: boolean) {
   const [pollOk, setPollOk] = useState<boolean | null>(null)
   const [lastPollAt, setLastPollAt] = useState<number | null>(null)
   const asOfRef = useRef(seed.asOf)
+  const marketRef = useRef(seed)
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({})
   const [newsIdx, setNewsIdx] = useState(0)
   const [clock, setClock] = useState(nowTime)
@@ -107,7 +114,34 @@ export function useLiveDesk(killed: boolean) {
     let cancelled = false
     const ctrl = new AbortController()
 
-    async function poll() {
+    function applySnapshot(
+      snap: ReturnType<typeof bakedMarketSnapshot>,
+      fromPoll: boolean,
+    ) {
+      if (cancelled) return
+      const prevMs = new Date(asOfRef.current).getTime()
+      const nextMs = new Date(snap.asOf).getTime()
+      // Book merge uses >= so equal asOf with fresher positions is allowed.
+      if (!Number.isFinite(nextMs) || nextMs < prevMs) return
+
+      asOfRef.current = snap.asOf
+      marketRef.current = snap
+      setAsOf(snap.asOf)
+      setSourceNote(snap.sourceNote)
+      setDegradedFlag(snap.degraded)
+      setBoard(snap.board.map(toRow))
+      setIndices(snap.indices.map(toRow))
+      setCrypto(snap.crypto.map(toRow))
+      setPositions(snap.positions.map((p) => ({ ...p })))
+      setPortfolio({ ...snap.portfolio })
+      setNewsCrawl([...snap.newsCrawl])
+      if (fromPoll) {
+        setPollOk(true)
+        setLastPollAt(Date.now())
+      }
+    }
+
+    async function pollMarket() {
       const snap = await fetchMarketSnapshot(ctrl.signal)
       if (cancelled) return
       setLastPollAt(Date.now())
@@ -115,29 +149,54 @@ export function useLiveDesk(killed: boolean) {
         setPollOk(false)
         return
       }
-      setPollOk(true)
-      setDegradedFlag(snap.degraded)
-      const prevMs = new Date(asOfRef.current).getTime()
-      const nextMs = new Date(snap.asOf).getTime()
-      if (!Number.isFinite(nextMs) || nextMs < prevMs) return
-
-      asOfRef.current = snap.asOf
-      setAsOf(snap.asOf)
-      setSourceNote(snap.sourceNote)
-      setBoard(snap.board.map(toRow))
-      setIndices(snap.indices.map(toRow))
-      setCrypto(snap.crypto.map(toRow))
-      setPositions(snap.positions.map((p) => ({ ...p })))
-      setPortfolio({ ...snap.portfolio })
-      setNewsCrawl([...snap.newsCrawl])
+      const book = await fetchBookSnapshot(ctrl.signal)
+      if (cancelled) return
+      const merged = mergeBookIntoMarket(snap, book)
+      applySnapshot(merged, true)
     }
 
-    void poll()
-    const id = window.setInterval(() => void poll(), POLL_MS)
+    async function pollBook() {
+      const book = await fetchBookSnapshot(ctrl.signal)
+      if (cancelled || !book) return
+      const merged = mergeBookIntoMarket(marketRef.current, book)
+      // Prefer book positions even when market poll hasn't run yet.
+      if (merged.asOf !== asOfRef.current || book.positions.length) {
+        const prevMs = new Date(asOfRef.current).getTime()
+        const nextMs = new Date(merged.asOf).getTime()
+        if (Number.isFinite(nextMs) && nextMs >= prevMs) {
+          asOfRef.current = merged.asOf
+          marketRef.current = merged
+          setAsOf(merged.asOf)
+          setSourceNote(merged.sourceNote)
+          setDegradedFlag(merged.degraded)
+          setPositions(merged.positions.map((p) => ({ ...p })))
+          setPortfolio({ ...merged.portfolio })
+          setPollOk(true)
+          setLastPollAt(Date.now())
+        }
+      }
+    }
+
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      void pollBook()
+      void pollMarket()
+    }
+
+    void pollMarket()
+    void pollBook()
+    const marketId = window.setInterval(() => void pollMarket(), MARKET_POLL_MS)
+    const bookId = window.setInterval(() => void pollBook(), BOOK_POLL_MS)
+    window.addEventListener('focus', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       cancelled = true
       ctrl.abort()
-      window.clearInterval(id)
+      window.clearInterval(marketId)
+      window.clearInterval(bookId)
+      window.removeEventListener('focus', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
 

@@ -210,7 +210,9 @@ export function DeskBoard({
         <div className="zone zone-pos">
           <header className="zone-head">
             <h2>Positions</h2>
-            <span className="zone-tag">MCP account</span>
+            <span className="zone-tag" title={sourceNote}>
+              MCP book · {asOfShort} · {feedLabel(feedStatus)}
+            </span>
           </header>
           <table className="pos-table">
             <thead>
@@ -234,7 +236,9 @@ export function DeskBoard({
                       {p.symbol}
                     </button>
                   </td>
-                  <td>{p.qty < 1 ? p.qty.toFixed(4) : p.qty.toFixed(2)}</td>
+                  <td>
+                    {Number.isInteger(p.qty) ? String(p.qty) : p.qty.toFixed(4)}
+                  </td>
                   <td
                     className={flashKeys[p.symbol] ? 'flash-td' : undefined}
                   >

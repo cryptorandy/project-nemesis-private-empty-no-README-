@@ -15,15 +15,19 @@ Cursor-published static apps **cannot call Robinhood MCP from the browser**. The
    - `get_watchlist_items` (Superstar watch)
    - `get_option_chains` / `get_option_instruments` / `get_option_quotes` (Greeks + IV)
    - `get_earnings_calendar` (near catalysts)
-2. Write **`public/data/market.json`** (pollable JSON the app loads).
+2. Write **`public/data/market.json`** (full board) and **`public/data/book.json`** (positions + portfolio).
 3. Sync options scanner bake in `src/data/options-scan.ts` + agent context.
 4. Commit + push + republish so hosted clients see new marks on poll.
 
+**External RH trades** (sells/buys outside the desk) do **not** stream into the hosted UI. Re-run the MCP bake (`scripts/refresh-market.mjs --from-stdin --write-ts`) and republish; the desk will pick up the new book on next poll / focus.
+
 ### What the UI does
 
-- Polls `/data/market.json` ~every 12s (`cache: no-store`)
+- Polls `/data/book.json` ~every 8s for positions/portfolio (preferred when asOf ≥ market bake)
+- Polls `/data/market.json` ~every 12s for quotes + full snapshot (`cache: no-store`)
+- Re-polls immediately on window focus / tab visible
 - Seeds from baked `src/data/rh-snapshot.ts` if the poll fails
-- Shows clear **as of** timestamps + feed status (`fresh` / `baked` / `stale` / `degraded`)
+- Shows clear **as of** timestamps + feed status (`fresh` / `baked` / `stale` / `degraded`); stale after ~15m
 - Gentle client tick between refreshes for TV energy (not a live MCP stream)
 - Degrades gracefully: keeps last known marks when JSON is missing or invalid
 
