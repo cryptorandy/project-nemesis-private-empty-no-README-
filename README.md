@@ -26,7 +26,9 @@ npm run preview
 - 9-agent rail with staggered orbit/pulse + status flickers (scanning / briefing / idle / escalate)
 - Kill switch (pauses agents + disables confirm)
 - Ticket draft → mock preview → human confirm gate → mock confirm
-- RH MCP snapshot baked in `src/data/rh-snapshot.ts` + high-frequency live ticks
+- Layer 1 market truth: agents bake RH MCP into `public/data/market.json`; UI polls it; TS fallback in `src/data/rh-snapshot.ts`
+- Clear **as of** timestamps + graceful degrade when poll fails
+- High-frequency tape tick between bake refreshes (TV energy, not a live MCP socket)
 
 See [docs/live-vs-mock.md](docs/live-vs-mock.md) for live vs mock detail.
 
@@ -38,9 +40,18 @@ If the app was published **private/team**, unauthenticated browsers get a Grok/C
 
 Fonts are self-hosted (no Google Fonts CDN) so first paint is not blocked on external CSS.
 
+## Refresh market bake (agents)
+
+```bash
+# After pulling RH MCP during an agent run, write JSON (+ optional TS sync):
+node scripts/refresh-market.mjs --from-stdin --write-ts < /path/to/snapshot.json
+# Or validate the committed bake:
+node scripts/refresh-market.mjs
+```
+
 ## Safety
 
-Orders are **never** placed by this UI. Preview and confirm are mock-only. Hosted app cannot call Robinhood MCP at runtime; agents refresh the snapshot when MCP is reachable.
+Orders are **never** placed by this UI. Preview and confirm are mock-only. Hosted app cannot call Robinhood MCP at runtime; agents refresh `public/data/market.json` when MCP is reachable, then push/republish.
 
 ## Repo note
 

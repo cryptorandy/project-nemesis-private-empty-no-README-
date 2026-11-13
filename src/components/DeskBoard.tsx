@@ -1,29 +1,44 @@
 import type { CSSProperties } from 'react'
 import { formatMoney, formatPct } from '../data/mock'
-import {
-  OPTIONS_HEAT_STUB,
-  RH_AS_OF,
-  RH_PORTFOLIO,
-  RH_SOURCE_NOTE,
-  type RhPosition,
-} from '../data/rh-snapshot'
+import type { FeedStatus, MarketPortfolio, MarketPosition } from '../data/market-types'
+import { OPTIONS_HEAT_STUB } from '../data/rh-snapshot'
 import type { ActivityTick, LiveAgentState, QuoteRow } from '../types'
 
 type DeskBoardProps = {
   indices: QuoteRow[]
   board: QuoteRow[]
   crypto: QuoteRow[]
-  positions: RhPosition[]
+  positions: MarketPosition[]
+  portfolio: MarketPortfolio
   flashKeys: Record<string, number>
   activity: ActivityTick[]
   agents: LiveAgentState[]
   tape: QuoteRow[]
   newsLine: string
   clock: string
+  asOfShort: string
+  asOf: string
+  sourceNote: string
+  feedStatus: FeedStatus
   killed: boolean
   focusedAgent: string | null
   onSelectAgent: (id: string) => void
   onPickSymbol: (symbol: string) => void
+}
+
+function feedLabel(status: FeedStatus): string {
+  switch (status) {
+    case 'fresh':
+      return 'poll · fresh'
+    case 'stale':
+      return 'stale bake'
+    case 'degraded':
+      return 'degraded'
+    case 'polling':
+      return 'polling'
+    default:
+      return 'baked'
+  }
 }
 
 function Chg({ n }: { n: number }) {
@@ -37,12 +52,17 @@ export function DeskBoard({
   board,
   crypto,
   positions,
+  portfolio,
   flashKeys,
   activity,
   agents,
   tape,
   newsLine,
   clock,
+  asOfShort,
+  asOf,
+  sourceNote,
+  feedStatus,
   killed,
   focusedAgent,
   onSelectAgent,
@@ -70,8 +90,12 @@ export function DeskBoard({
             <Chg n={q.changePct} />
           </button>
         ))}
-        <span className="strip-meta" title={RH_SOURCE_NOTE}>
-          RH · {RH_AS_OF.slice(11, 16)}Z · MCP {RH_PORTFOLIO.accountMasked}
+        <span
+          className={`strip-meta feed-${feedStatus}`}
+          title={`${sourceNote} · as of ${asOf}`}
+        >
+          RH · as of {asOfShort} · {feedLabel(feedStatus)} · MCP{' '}
+          {portfolio.accountMasked}
         </span>
       </div>
 
@@ -96,21 +120,21 @@ export function DeskBoard({
       <div className="pnl-strip" aria-label="Portfolio snapshot">
         <div className="pnl-cell">
           <span className="pnl-label">Account</span>
-          <span className="pnl-val">{formatMoney(RH_PORTFOLIO.totalValue)}</span>
+          <span className="pnl-val">{formatMoney(portfolio.totalValue)}</span>
         </div>
         <div className="pnl-cell">
           <span className="pnl-label">Equity</span>
-          <span className="pnl-val">{formatMoney(RH_PORTFOLIO.equityValue)}</span>
+          <span className="pnl-val">{formatMoney(portfolio.equityValue)}</span>
         </div>
         <div className="pnl-cell">
           <span className="pnl-label">Options</span>
           <span className="pnl-val">
-            {formatMoney(RH_PORTFOLIO.optionsValue)}
+            {formatMoney(portfolio.optionsValue)}
           </span>
         </div>
         <div className="pnl-cell">
           <span className="pnl-label">Cash / BP</span>
-          <span className="pnl-val">{formatMoney(RH_PORTFOLIO.buyingPower)}</span>
+          <span className="pnl-val">{formatMoney(portfolio.buyingPower)}</span>
         </div>
         <div className="pnl-cell">
           <span className="pnl-label">Unrealized</span>
@@ -119,8 +143,10 @@ export function DeskBoard({
           </span>
         </div>
         <div className="pnl-cell muted">
-          <span className="pnl-label">Feed</span>
-          <span className="pnl-val tiny">snapshot + live tick</span>
+          <span className="pnl-label">As of</span>
+          <span className="pnl-val tiny" title={sourceNote}>
+            {asOfShort} · {feedLabel(feedStatus)}
+          </span>
         </div>
       </div>
 
@@ -129,7 +155,9 @@ export function DeskBoard({
         <div className="zone zone-quotes">
           <header className="zone-head">
             <h2>Quote grid</h2>
-            <span className="zone-tag">RH marks · live tick</span>
+            <span className="zone-tag">
+              RH · as of {asOfShort} · {feedLabel(feedStatus)}
+            </span>
           </header>
           <div className="quote-grid">
             {board.map((q) => (

@@ -167,12 +167,17 @@ function App() {
             board={live.board}
             crypto={live.crypto}
             positions={live.positions}
+            portfolio={live.portfolio}
             flashKeys={live.flashKeys}
             activity={live.activity}
             agents={live.agents}
             tape={live.tape}
             newsLine={live.newsLine}
             clock={live.clock}
+            asOf={live.asOf}
+            asOfShort={live.asOfShort}
+            sourceNote={live.sourceNote}
+            feedStatus={live.feedStatus}
             killed={killed}
             focusedAgent={focusedAgent}
             onSelectAgent={(id) =>

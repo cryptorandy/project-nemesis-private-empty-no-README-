@@ -94,7 +94,7 @@ export const RESEARCH_BRIEF = {
   focus: 'NVDA',
   headline: 'AH bid firm · holding micro-lot · soft risk pass',
   bullets: [
-    'RH last ~$167.94 AH · prev close $166.19',
+    'RH last ~$166.54 AH · prev close $166.19',
     'Earnings Brief: next print placeholder — wire MCP later',
     'Options Flow stub: 170c elevated IV',
     'Risk Guard: notional under $5k soft limit for draft size',
@@ -114,34 +114,34 @@ export const INITIAL_TICKET: TicketDraft = {
   symbol: 'NVDA',
   qty: 1,
   order: 'Limit',
-  limit: 167.5,
+  limit: 166.5,
 }
 
 export const INITIAL_AUDIT: AuditEntry[] = [
   {
     id: 'a4',
-    time: '01:03:25',
+    time: '02:39:56',
     entity: 'Portfolio Ops',
     action: 'brief',
-    details: 'RH MCP snapshot loaded · MCP ••••0788',
+    details: 'RH market.json baked · MCP ••••0788 · as of 02:39:56Z',
   },
   {
     id: 'a3',
-    time: '01:03:12',
+    time: '02:39:40',
     entity: 'Scanner Watch',
     action: 'scan',
-    details: 'SOXL +2.0% AH annotated on board',
+    details: 'SOXL +3.2% AH annotated on board',
   },
   {
     id: 'a2',
-    time: '01:02:48',
+    time: '02:39:20',
     entity: 'Crypto Pulse',
     action: 'scan',
     details: 'BTC/ETH marks refreshed from RH',
   },
   {
     id: 'a1',
-    time: '01:02:10',
+    time: '02:38:50',
     entity: 'Risk Guard',
     action: 'risk',
     details: 'Soft limits armed · confirm-before-trade',
@@ -151,21 +151,21 @@ export const INITIAL_AUDIT: AuditEntry[] = [
 export const INITIAL_ACTIVITY: ActivityTick[] = [
   {
     id: 'act-0',
-    time: '01:03:25',
+    time: '02:39:56',
     agent: 'BOOK',
-    text: 'RH portfolio $352.31 · equity $143.57',
+    text: 'RH portfolio $352.77 · equity $144.03',
   },
   {
     id: 'act-1',
-    time: '01:03:12',
+    time: '02:39:40',
     agent: 'SCAN',
     text: 'SOXL AH surge · board heat',
   },
   {
     id: 'act-2',
-    time: '01:02:48',
+    time: '02:39:20',
     agent: 'CRYP',
-    text: 'BTC mark $70,845 · −3.8%',
+    text: 'BTC mark $70,279 · −4.6%',
   },
 ]
 
