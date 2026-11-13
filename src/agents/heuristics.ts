@@ -7,8 +7,13 @@ import {
   SCAN_GAINERS,
   SOFT_LIMITS,
 } from '../data/agent-context'
+import { CAPITAL_RULES } from '../data/options-scan'
 import { nowTime } from '../data/mock'
 import type { ActivityTick, AgentLoopStatus } from '../types'
+import {
+  ideaToStagedFields,
+  rankOptionBuyIdeas,
+} from './optionsScanner'
 import { metaById } from './roster'
 import type {
   AgentBrief,
@@ -197,14 +202,18 @@ export function runRisk(market: SwarmMarketView, loopN: number): LoopResult {
     flags.push(`Options premium notional ~${money(optNotional)} · under contract cap`)
   }
 
-  const draftProbe = 167.5 * 1
-  if (draftProbe > SOFT_LIMITS.maxNotionalPerTicket) {
-    flags.push(`Draft probe exceeds ${money(SOFT_LIMITS.maxNotionalPerTicket)} ticket cap`)
-    severity = 'escalate'
-  } else {
+  const bpCap =
+    (PORTFOLIO_MARKS.buyingPower * SOFT_LIMITS.maxPctBuyingPowerPerTrade) / 100
+  const dayLossCap =
+    (PORTFOLIO_MARKS.totalValue * SOFT_LIMITS.maxDayLossPctOfAccount) / 100
+  flags.push(
+    `${SOFT_LIMITS.maxPctBuyingPowerPerTrade}% BP cap ${money(bpCap)} · ${SOFT_LIMITS.maxDayLossPctOfAccount}% day-loss ${money(dayLossCap)} · watchlist-only`,
+  )
+  if (optNotional > bpCap) {
     flags.push(
-      `Ticket soft cap ${money(SOFT_LIMITS.maxNotionalPerTicket)} · BP ${money(PORTFOLIO_MARKS.buyingPower)}`,
+      `Open options prem ~${money(optNotional)} already above ${SOFT_LIMITS.maxPctBuyingPowerPerTrade}% BP — new buys need ack`,
     )
+    if (severity === 'info') severity = 'watch'
   }
 
   const cryptoRisk = CRYPTO_MARKS.reduce((s, c) => s + Math.abs(c.changePct), 0)
@@ -279,44 +288,55 @@ export function runEarnings(loopN: number): LoopResult {
   }
 }
 
-/** Options Flow — open positions + heat heuristics. */
+/**
+ * Options Flow — ranked buy ideas from RH chains/quotes.
+ * Hard gate: every idea must include delta/gamma/theta/vega (IV when available).
+ * Never places — board surfaces ideas for one-tap stage.
+ */
 export function runOptions(market: SwarmMarketView, loopN: number): LoopResult {
+  const ideas = rankOptionBuyIdeas(
+    PORTFOLIO_MARKS.buyingPower,
+    PORTFOLIO_MARKS.totalValue,
+    6,
+  )
+  const top = ideas[loopN % Math.max(ideas.length, 1)]
   const pos = OPTION_POSITIONS[loopN % OPTION_POSITIONS.length]
   const und = market.board.find((q) => q.symbol === pos.underlying)
-  const daysToExp = Math.max(
-    0,
-    Math.round(
-      (new Date(pos.expiry).getTime() - Date.now()) / (24 * 3600 * 1000),
-    ),
-  )
 
   let severity: BriefSeverity = 'info'
-  if (daysToExp <= 5) severity = 'escalate'
-  else if (daysToExp <= 10 || (und && Math.abs(und.changePct) >= 1.5))
+  if (ideas.some((i) => i.risk === 'block')) severity = 'escalate'
+  else if (ideas.some((i) => i.earningsDate || i.volOiRatio >= 1.5))
     severity = 'watch'
 
-  const moneyness =
-    und != null
-      ? ((und.price - pos.strike) / pos.strike) * 100
-      : null
+  let headline = 'Options scan · no Greeks-qualified buys'
+  let detail = `Universe watchlist+holdings · ${CAPITAL_RULES.maxPctBuyingPowerPerTrade}% BP / ${CAPITAL_RULES.maxDayLossPctOfAccount}% day-loss · no auto-place`
+  const symbols: string[] = []
 
-  const headline = `${pos.underlying} ${pos.strike}${pos.side === 'call' ? 'c' : 'p'} · ${daysToExp}d`
-  const detail = [
-    `Long ${pos.qty} · avg prem ${money(pos.avgPremium)} · ~${money(pos.notionalApprox)}`,
-    und ? `und ${money(und.price)} ${pct(und.changePct)}` : null,
-    moneyness != null ? `Δ strike ${pct(moneyness)}` : null,
-    `exp ${pos.expiry}`,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  if (top) {
+    const g = top.greeks
+    headline = `#${top.rank} BUY ${top.underlying} ${top.strike}${top.right === 'Call' ? 'c' : 'p'} · Δ ${g.delta.toFixed(2)}`
+    detail = [
+      top.structure,
+      `exp ${top.expiry}`,
+      `mark ${money(top.mark)} · prem ${money(top.notional)}`,
+      `Δ ${g.delta.toFixed(3)} Γ ${g.gamma.toFixed(3)} Θ ${g.theta.toFixed(3)} ν ${g.vega.toFixed(3)}`,
+      g.iv != null ? `IV ${(g.iv * 100).toFixed(0)}%` : 'IV n/a',
+      top.riskNote,
+      und ? `book ${pos.underlying} open` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    symbols.push(top.underlying, ...ideas.slice(0, 3).map((i) => i.underlying))
+  }
 
-  const b = brief('flow', headline, detail, severity, [pos.underlying])
+  const b = brief('flow', headline, detail, severity, [...new Set(symbols)].slice(0, 6))
   return {
     agentId: 'flow',
     status: statusFrom(severity),
     thought: headline,
     brief: b,
-    activity: activity('flow', `${headline} — ${detail}`, `${loopN}-${pos.underlying}`),
+    activity: activity('flow', `${headline} — ${detail}`, `${loopN}-${top?.underlying ?? 'none'}`),
+    optionIdeas: ideas,
   }
 }
 
@@ -419,6 +439,7 @@ export function runPortfolio(market: SwarmMarketView, loopN: number): LoopResult
 
 /**
  * Execution Prep — stage a draft ticket from risk-cleared ideas.
+ * Prefers top Greeks-qualified option buy when capital-fit; else equity micro.
  * NEVER places. Only stages into desk state for Randy.
  */
 export function runExecPrep(
@@ -431,19 +452,37 @@ export function runExecPrep(
   const scan = briefs.scan
   const earn = briefs.earn
   const book = briefs.book
+  const ideas = rankOptionBuyIdeas(
+    PORTFOLIO_MARKS.buyingPower,
+    PORTFOLIO_MARKS.totalValue,
+    6,
+  )
+  // Auto-stage only capital-fit or warn (under BP). Blocked (>BP) stay board-only Stage.
+  const stageable = ideas.find((i) => i.risk === 'fit' || i.risk === 'warn')
 
   let staged: StagedTicket | undefined
   let severity: BriefSeverity = 'info'
   let headline = 'Draft rail idle · no place path'
-  let detail = 'Waiting on scanner / earnings / book cues · confirm stays human'
+  let detail = 'Waiting on options scan / earnings / book cues · confirm stays human'
   const symbols: string[] = []
 
   if (blocked) {
     severity = 'escalate'
     headline = 'Staging held · Risk soft block'
     detail = riskFlags[0] ?? 'Risk Guard soft block'
+  } else if (stageable && loopN % 2 === 1) {
+    const fields = ideaToStagedFields(stageable)
+    staged = {
+      ...fields,
+      stagedBy: 'exec',
+      stagedAt: isoNow(),
+      ideaId: stageable.id,
+    }
+    severity = stageable.risk === 'fit' ? 'watch' : 'escalate'
+    headline = `Staged OPT ${stageable.underlying} ${stageable.strike}${stageable.right === 'Call' ? 'c' : 'p'}`
+    detail = `${fields.reason}`
+    symbols.push(stageable.underlying)
   } else {
-    // Prefer a holding that fits buying power as a 1-share micro stage
     const affordable = [...market.positions]
       .map((p) => {
         const px =
@@ -455,7 +494,6 @@ export function runExecPrep(
 
     const hold = affordable?.p
     const boardPx = affordable?.px ?? market.board[0]?.price ?? 100
-
     const reasonParts: string[] = []
     if (earn?.severity === 'escalate' || earn?.severity === 'watch') {
       reasonParts.push(`EARN: ${earn.headline}`)
@@ -469,14 +507,14 @@ export function runExecPrep(
     const limit = Math.round(boardPx * 100) / 100
     const qty = 1
     const notional = qty * limit
+    const bpCap =
+      (PORTFOLIO_MARKS.buyingPower * SOFT_LIMITS.maxPctBuyingPowerPerTrade) /
+      100
 
-    if (
-      notional <= SOFT_LIMITS.maxNotionalPerTicket &&
-      notional <= PORTFOLIO_MARKS.buyingPower
-    ) {
+    if (notional <= bpCap && notional <= PORTFOLIO_MARKS.buyingPower) {
       const reason =
         reasonParts.join(' · ') ||
-        `Routine stage · ${symbol} micro-lot under soft caps`
+        `Routine equity stage · ${symbol} under ${SOFT_LIMITS.maxPctBuyingPowerPerTrade}% BP`
       staged = {
         asset: 'Equity',
         side: 'Buy',
@@ -490,16 +528,12 @@ export function runExecPrep(
         stagedAt: isoNow(),
       }
       severity = 'watch'
-      headline = `Staged ${symbol} ${qty}@${limit}`
+      headline = `Staged EQ ${symbol} ${qty}@${limit}`
       detail = `${reason} · preview required · NEVER place`
       symbols.push(symbol)
-    } else if (loopN % 2 === 0) {
-      severity = 'watch'
-      headline = 'Stage skipped · size / BP gate'
-      detail = `Notional ${money(notional)} vs cap ${money(SOFT_LIMITS.maxNotionalPerTicket)} / BP ${money(PORTFOLIO_MARKS.buyingPower)}`
     } else {
       headline = 'Confirm gate standing by'
-      detail = 'Sync draft rail · no Robinhood place-order calls from agents'
+      detail = `Equity notional ${money(notional)} vs ${SOFT_LIMITS.maxPctBuyingPowerPerTrade}% BP ${money(bpCap)} · options ideas on board`
     }
   }
 
@@ -511,6 +545,7 @@ export function runExecPrep(
     brief: b,
     activity: activity('exec', `${headline} — ${detail}`, `${loopN}`),
     stagedTicket: staged,
+    optionIdeas: ideas,
   }
 }
 

@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react'
+import type { OptionBuyIdea } from '../agents/optionsScanner'
 import type { AgentBrief, AgentId } from '../agents/types'
 import { formatMoney, formatPct } from '../data/mock'
 import type { FeedStatus, MarketPortfolio, MarketPosition } from '../data/market-types'
-import { OPTIONS_HEAT_STUB } from '../data/rh-snapshot'
+import { OPTIONS_SCAN_AS_OF } from '../data/options-scan'
 import type { ActivityTick, LiveAgentState, QuoteRow } from '../types'
 
 type DeskBoardProps = {
@@ -16,6 +17,7 @@ type DeskBoardProps = {
   agents: LiveAgentState[]
   briefs: Partial<Record<AgentId, AgentBrief>>
   deskBrief: AgentBrief | null
+  optionIdeas: OptionBuyIdea[]
   tape: QuoteRow[]
   newsLine: string
   clock: string
@@ -28,6 +30,8 @@ type DeskBoardProps = {
   loopCount: number
   onSelectAgent: (id: string) => void
   onPickSymbol: (symbol: string) => void
+  /** One-tap stage into ticket rail — never places. */
+  onStageIdea: (idea: OptionBuyIdea) => void
 }
 
 function feedLabel(status: FeedStatus): string {
@@ -62,6 +66,7 @@ export function DeskBoard({
   agents,
   briefs,
   deskBrief,
+  optionIdeas,
   tape,
   newsLine,
   clock,
@@ -74,6 +79,7 @@ export function DeskBoard({
   loopCount,
   onSelectAgent,
   onPickSymbol,
+  onStageIdea,
 }: DeskBoardProps) {
   const bookPnl = positions.reduce((s, p) => s + p.pnl, 0)
 
@@ -268,31 +274,86 @@ export function DeskBoard({
           </div>
         </div>
 
-        {/* Options heat stub */}
+        {/* Ranked options buy ideas — Greeks required */}
         <div className="zone zone-opt">
           <header className="zone-head">
-            <h2>Options heat</h2>
-            <span className="zone-tag stub">stub · not live chain</span>
+            <h2>Options buys</h2>
+            <span className="zone-tag">
+              FLOW · Greeks · as of {OPTIONS_SCAN_AS_OF.slice(11, 16)}Z
+            </span>
           </header>
-          <ul className="opt-list">
-            {OPTIONS_HEAT_STUB.map((o) => (
-              <li key={`${o.underlying}-${o.strike}-${o.side}`}>
-                <button
-                  type="button"
-                  className="opt-row"
-                  onClick={() => onPickSymbol(o.underlying)}
-                >
-                  <span className="opt-u">{o.underlying}</span>
-                  <span>
-                    {o.side} {o.strike}
-                  </span>
-                  <span className="dim">{o.expiry}</span>
-                  <span className="dim">IV {o.iv}</span>
-                  <span className={`heat ${o.heat}`}>{o.heat}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {optionIdeas.length === 0 ? (
+            <p className="opt-empty dim">
+              Waiting Options Flow loop · Δ/Γ/Θ/ν required per idea
+            </p>
+          ) : (
+            <ul className="opt-idea-list">
+              {optionIdeas.map((idea) => {
+                const g = idea.greeks
+                const iv =
+                  g.iv != null ? `${(g.iv * 100).toFixed(0)}%` : 'n/a'
+                return (
+                  <li key={idea.id}>
+                    <article className={`opt-idea risk-${idea.risk}`}>
+                      <div className="opt-idea-top">
+                        <span className="opt-rank">#{idea.rank}</span>
+                        <button
+                          type="button"
+                          className="opt-u linkish"
+                          onClick={() => onPickSymbol(idea.underlying)}
+                        >
+                          {idea.underlying}
+                        </button>
+                        <span className="opt-struct">
+                          {idea.right} {idea.strike}
+                        </span>
+                        <span className="dim">{idea.expiry}</span>
+                        <span className={`heat ${idea.risk}`}>
+                          {idea.risk}
+                        </span>
+                      </div>
+                      <div className="opt-greeks" aria-label="Greeks">
+                        <span>
+                          Δ <strong>{g.delta.toFixed(3)}</strong>
+                        </span>
+                        <span>
+                          Γ <strong>{g.gamma.toFixed(3)}</strong>
+                        </span>
+                        <span>
+                          Θ <strong>{g.theta.toFixed(3)}</strong>
+                        </span>
+                        <span>
+                          ν <strong>{g.vega.toFixed(3)}</strong>
+                        </span>
+                        <span>
+                          IV <strong>{iv}</strong>
+                        </span>
+                      </div>
+                      <p className="opt-thesis" title={idea.thesis}>
+                        {idea.thesis}
+                      </p>
+                      <div className="opt-idea-foot">
+                        <span className="dim">
+                          prem {formatMoney(idea.notional)} ·{' '}
+                          {idea.pctOfBuyingPower.toFixed(0)}% BP ·{' '}
+                          {idea.riskNote}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-stage"
+                          disabled={killed}
+                          onClick={() => onStageIdea(idea)}
+                          title="Stage into ticket rail — confirm still required"
+                        >
+                          Stage
+                        </button>
+                      </div>
+                    </article>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
 
         {/* Agent swarm wall */}

@@ -1,9 +1,16 @@
-import { RH_PORTFOLIO, RH_POSITIONS } from '../data/rh-snapshot'
+import { PORTFOLIO_MARKS } from '../data/agent-context'
+import {
+  CAPITAL_RULES,
+  allowedUnderlyings,
+} from '../data/options-scan'
+import { RH_PORTFOLIO } from '../data/rh-snapshot'
 import type { TicketDraft } from '../types'
 
-/** Soft size caps — placeholders until live Risk Guard owns limits. */
+/** Soft size caps — % capital rules on MCP ••••0788 */
 export const RISK_CAPS = {
-  maxNotional: 5000,
+  maxPctBuyingPowerPerTrade: CAPITAL_RULES.maxPctBuyingPowerPerTrade,
+  maxDayLossPctOfAccount: CAPITAL_RULES.maxDayLossPctOfAccount,
+  watchlistOnly: CAPITAL_RULES.watchlistOnly,
   maxBookPct: 8,
   maxOptionContracts: 5,
   cryptoNotionalCap: 2000,
@@ -46,7 +53,7 @@ export function resolveMark(ticket: TicketDraft, liveMark?: number): number {
 }
 
 /**
- * Pre-confirm soft checks against baked RH portfolio + stub caps.
+ * Pre-confirm soft checks vs % capital rules on baked RH portfolio.
  * Never places orders — advisory only for the human gate.
  */
 export function runRiskSoftChecks(
@@ -55,13 +62,12 @@ export function runRiskSoftChecks(
 ): RiskReport {
   const mark = resolveMark(ticket, liveMark)
   const notional = estimateNotional(ticket, mark)
-  const book = RH_PORTFOLIO.totalValue || 1
-  const bp = RH_PORTFOLIO.buyingPower
-  const existing =
-    RH_POSITIONS.find((p) => p.symbol === ticket.symbol)?.value ?? 0
-  const postNameValue =
-    ticket.side === 'Buy' ? existing + notional : Math.max(0, existing - notional)
-  const concentrationPct = (postNameValue / book) * 100
+  const book = RH_PORTFOLIO.totalValue || PORTFOLIO_MARKS.totalValue || 1
+  const bp = RH_PORTFOLIO.buyingPower || PORTFOLIO_MARKS.buyingPower
+  const bpCap = (bp * RISK_CAPS.maxPctBuyingPowerPerTrade) / 100
+  const dayLossCap = (book * RISK_CAPS.maxDayLossPctOfAccount) / 100
+  const pctBp = bp > 0 ? (notional / bp) * 100 : 999
+  const allowed = allowedUnderlyings()
 
   const checks: RiskCheck[] = []
 
@@ -90,37 +96,105 @@ export function runRiskSoftChecks(
     })
   }
 
-  if (ticket.asset === 'Equity') {
-    if (notional > RISK_CAPS.maxNotional) {
+  // Watchlist-only (holdings + Superstar)
+  if (ticket.symbol.trim() && RISK_CAPS.watchlistOnly) {
+    const ok = allowed.has(ticket.symbol.trim().toUpperCase())
+    checks.push({
+      id: 'watchlist',
+      label: 'Watchlist-only',
+      detail: ok
+        ? `${ticket.symbol} on holdings / Superstar universe`
+        : `${ticket.symbol} not on watchlist/holdings — soft block`,
+      level: ok ? 'pass' : 'block',
+    })
+  }
+
+  // 10% buying power per trade
+  if (ticket.side === 'Buy') {
+    if (notional > bp) {
       checks.push({
-        id: 'notional',
-        label: 'Max notional / ticket',
-        detail: `~$${notional.toFixed(2)} exceeds $${RISK_CAPS.maxNotional.toLocaleString()} soft cap`,
+        id: 'buying-power',
+        label: 'Buying power',
+        detail: `Need ~$${notional.toFixed(2)} · BP $${bp.toFixed(2)}`,
         level: 'block',
       })
-    } else if (notional > RISK_CAPS.maxNotional * 0.6) {
+    } else if (notional > bpCap) {
       checks.push({
-        id: 'notional',
-        label: 'Max notional / ticket',
-        detail: `~$${notional.toFixed(2)} · approaching $${RISK_CAPS.maxNotional.toLocaleString()} cap`,
+        id: 'bp-pct',
+        label: `${RISK_CAPS.maxPctBuyingPowerPerTrade}% BP / trade`,
+        detail: `~$${notional.toFixed(2)} = ${pctBp.toFixed(1)}% BP · cap $${bpCap.toFixed(2)}`,
+        level: 'warn',
+      })
+      checks.push({
+        id: 'buying-power',
+        label: 'Buying power',
+        detail: `BP $${bp.toFixed(2)} covers premium · over % cap`,
+        level: 'pass',
+      })
+    } else {
+      checks.push({
+        id: 'bp-pct',
+        label: `${RISK_CAPS.maxPctBuyingPowerPerTrade}% BP / trade`,
+        detail: `~$${notional.toFixed(2)} = ${pctBp.toFixed(1)}% BP under $${bpCap.toFixed(2)}`,
+        level: 'pass',
+      })
+      checks.push({
+        id: 'buying-power',
+        label: 'Buying power',
+        detail: `BP $${bp.toFixed(2)} covers ~$${notional.toFixed(2)}`,
+        level: 'pass',
+      })
+    }
+  } else {
+    checks.push({
+      id: 'buying-power',
+      label: 'Buying power',
+      detail: 'Sell · BP not consumed',
+      level: 'pass',
+    })
+    checks.push({
+      id: 'bp-pct',
+      label: `${RISK_CAPS.maxPctBuyingPowerPerTrade}% BP / trade`,
+      detail: 'Sell · % BP rule N/A',
+      level: 'pass',
+    })
+  }
+
+  // 5% account day-loss budget (premium at risk for long options ≈ max loss)
+  if (ticket.side === 'Buy') {
+    if (notional > dayLossCap) {
+      checks.push({
+        id: 'day-loss',
+        label: `${RISK_CAPS.maxDayLossPctOfAccount}% day-loss budget`,
+        detail: `Premium at risk ~$${notional.toFixed(2)} > $${dayLossCap.toFixed(2)} (${RISK_CAPS.maxDayLossPctOfAccount}% of $${book.toFixed(0)})`,
         level: 'warn',
       })
     } else {
       checks.push({
-        id: 'notional',
-        label: 'Max notional / ticket',
-        detail: `~$${notional.toFixed(2)} under $${RISK_CAPS.maxNotional.toLocaleString()}`,
+        id: 'day-loss',
+        label: `${RISK_CAPS.maxDayLossPctOfAccount}% day-loss budget`,
+        detail: `Premium at risk ~$${notional.toFixed(2)} ≤ $${dayLossCap.toFixed(2)}`,
         level: 'pass',
       })
     }
   }
 
   if (ticket.asset === 'Option') {
+    const right = ticket.optionRight ?? 'Call'
+    const strike = ticket.optionStrike
+    const expiry = ticket.optionExpiry
     checks.push({
-      id: 'option-stub',
-      label: 'Options ticket',
-      detail: 'Structure stub — chain preview not wired; soft-check only',
-      level: 'warn',
+      id: 'option-structure',
+      label: 'Options structure',
+      detail: [
+        `${right}`,
+        strike != null ? `strike ${strike}` : null,
+        expiry ? `exp ${expiry}` : null,
+        'Greeks required on scanner ideas',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      level: strike != null && expiry ? 'pass' : 'warn',
     })
     if (ticket.qty > RISK_CAPS.maxOptionContracts) {
       checks.push({
@@ -163,45 +237,26 @@ export function runRiskSoftChecks(
     }
   }
 
-  if (concentrationPct > RISK_CAPS.maxBookPct) {
-    checks.push({
-      id: 'concentration',
-      label: 'Concentration / name',
-      detail: `Post-trade ~${concentrationPct.toFixed(1)}% of book (cap ${RISK_CAPS.maxBookPct}%)`,
-      level: 'warn',
-    })
-  } else {
-    checks.push({
-      id: 'concentration',
-      label: 'Concentration / name',
-      detail: `Post-trade ~${concentrationPct.toFixed(1)}% of book (cap ${RISK_CAPS.maxBookPct}%)`,
-      level: 'pass',
-    })
-  }
-
-  if (ticket.side === 'Buy') {
-    if (notional > bp) {
+  if (ticket.asset === 'Equity') {
+    const existing = 0
+    const postNameValue =
+      ticket.side === 'Buy' ? existing + notional : Math.max(0, existing - notional)
+    const concentrationPct = (postNameValue / book) * 100
+    if (concentrationPct > RISK_CAPS.maxBookPct) {
       checks.push({
-        id: 'buying-power',
-        label: 'Buying power',
-        detail: `Need ~$${notional.toFixed(2)} · BP $${bp.toFixed(2)} (placeholder snap)`,
+        id: 'concentration',
+        label: 'Concentration / name',
+        detail: `Post-trade ~${concentrationPct.toFixed(1)}% of book (cap ${RISK_CAPS.maxBookPct}%)`,
         level: 'warn',
       })
     } else {
       checks.push({
-        id: 'buying-power',
-        label: 'Buying power',
-        detail: `BP $${bp.toFixed(2)} covers ~$${notional.toFixed(2)}`,
+        id: 'concentration',
+        label: 'Concentration / name',
+        detail: `Post-trade ~${concentrationPct.toFixed(1)}% of book (cap ${RISK_CAPS.maxBookPct}%)`,
         level: 'pass',
       })
     }
-  } else {
-    checks.push({
-      id: 'buying-power',
-      label: 'Buying power',
-      detail: 'Sell · BP not consumed',
-      level: 'pass',
-    })
   }
 
   const worst = worstLevel(checks.map((c) => c.level))

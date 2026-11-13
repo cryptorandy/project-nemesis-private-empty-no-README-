@@ -25,7 +25,11 @@ export function ConfirmGate({
   const [ackRisk, setAckRisk] = useState(false)
   const [ackHuman, setAckHuman] = useState(false)
 
-  const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}`
+  const optBits =
+    ticket.asset === 'Option'
+      ? ` ${ticket.optionRight ?? 'Call'} ${ticket.optionStrike ?? '?'} ${ticket.optionExpiry ?? ''}`
+      : ''
+  const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits} (${ticket.asset})`
   const hardBlocked = killed || !previewed || !preview
   const softNeedsAck = risk.needsAck
   const canConfirm =

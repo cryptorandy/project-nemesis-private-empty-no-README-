@@ -12,8 +12,16 @@
 
 export const AGENT_CONTEXT_AS_OF = '2026-11-13T02:40:33Z'
 
+/**
+ * Soft limits aligned to prefs: 10% BP / trade, 5% day loss, watchlist-only.
+ * Dollar notional caps derived from current MCP portfolio bake.
+ */
 export const SOFT_LIMITS = {
-  maxNotionalPerTicket: 5000,
+  maxPctBuyingPowerPerTrade: 10,
+  maxDayLossPctOfAccount: 5,
+  watchlistOnly: true,
+  /** Derived: ~10% of baked BP — soft gate, not a hard RH reject */
+  maxNotionalPerTicket: 10.37,
   maxPctBookPerName: 8,
   maxOptionContracts: 5,
   cryptoNotionalCap: 2000,

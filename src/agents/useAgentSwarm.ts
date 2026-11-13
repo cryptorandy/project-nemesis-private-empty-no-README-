@@ -10,6 +10,7 @@ import type {
 } from '../types'
 import { runAgent } from './heuristics'
 import { AGENT_ROSTER } from './roster'
+import type { OptionBuyIdea } from './optionsScanner'
 import type {
   AgentBrief,
   AgentId,
@@ -36,6 +37,7 @@ const INITIAL: DeskSwarmState = {
   activity: INITIAL_ACTIVITY,
   riskFlags: [],
   stagedTicket: null,
+  optionIdeas: [],
   newsLine: `Swarm armed · RH agent context ${AGENT_CONTEXT_AS_OF} · no place path`,
   loopCount: 0,
 }
@@ -47,6 +49,8 @@ export type UseAgentSwarmArgs = {
   positions: MarketPosition[]
   /** Called when Execution Prep stages a draft (never places). */
   onStageTicket?: (ticket: StagedTicket) => void
+  /** Called when Options Flow publishes ranked buy ideas (Greeks required). */
+  onOptionIdeas?: (ideas: OptionBuyIdea[]) => void
   /** Audit crumbs for loop / stage events */
   onAudit?: (
     entity: string,
@@ -65,6 +69,7 @@ export function useAgentSwarm({
   crypto,
   positions,
   onStageTicket,
+  onOptionIdeas,
   onAudit,
 }: UseAgentSwarmArgs) {
   const [state, setState] = useState<DeskSwarmState>(INITIAL)
@@ -78,12 +83,14 @@ export function useAgentSwarm({
   const flagsRef = useRef<string[]>([])
   const loopRef = useRef<Partial<Record<AgentId, number>>>({})
   const stageCb = useRef(onStageTicket)
+  const ideasCb = useRef(onOptionIdeas)
   const auditCb = useRef(onAudit)
 
   useEffect(() => {
     stageCb.current = onStageTicket
+    ideasCb.current = onOptionIdeas
     auditCb.current = onAudit
-  }, [onStageTicket, onAudit])
+  }, [onStageTicket, onOptionIdeas, onAudit])
 
   useEffect(() => {
     const bookPnl = positions.reduce((s, p) => s + p.pnl, 0)
@@ -143,6 +150,9 @@ export function useAgentSwarm({
         if (result.stagedTicket) {
           stageCb.current?.(result.stagedTicket)
         }
+        if (result.optionIdeas) {
+          ideasCb.current?.(result.optionIdeas)
+        }
 
         const auditAction =
           id === 'risk' ? 'risk' : id === 'scan' || id === 'flow' || id === 'cryp' ? 'scan' : 'brief'
@@ -175,6 +185,7 @@ export function useAgentSwarm({
             activity,
             riskFlags: result.riskFlags ?? prev.riskFlags,
             stagedTicket: result.stagedTicket ?? prev.stagedTicket,
+            optionIdeas: result.optionIdeas ?? prev.optionIdeas,
             newsLine: `${meta.short} · ${result.thought}`,
             loopCount: prev.loopCount + 1,
           }
@@ -203,6 +214,7 @@ export function useAgentSwarm({
     activity: state.activity,
     riskFlags: state.riskFlags,
     stagedTicket: state.stagedTicket,
+    optionIdeas: state.optionIdeas,
     newsLine: state.newsLine,
     loopCount: state.loopCount,
     clock: nowTime(),
