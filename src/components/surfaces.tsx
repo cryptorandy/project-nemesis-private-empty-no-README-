@@ -1,8 +1,9 @@
 import type { AgentBrief, AgentId } from '../agents/types'
 import { metaById } from '../agents/roster'
 import { SIZE_LIMITS } from '../data/mock'
-import { RH_AS_OF, RH_SOURCE_NOTE } from '../data/rh-snapshot'
-import type { AuditEntry } from '../types'
+import { RH_AS_OF, RH_PORTFOLIO, RH_SOURCE_NOTE } from '../data/rh-snapshot'
+import type { RiskReport } from '../lib/riskChecks'
+import type { AuditEntry, TicketDraft } from '../types'
 
 type ResearchProps = {
   deskBrief: AgentBrief | null
@@ -56,9 +57,17 @@ type RiskProps = {
   killed: boolean
   onToggleKill: () => void
   riskFlags: string[]
+  risk: RiskReport
+  ticket: TicketDraft
 }
 
-export function RiskSurface({ killed, onToggleKill, riskFlags }: RiskProps) {
+export function RiskSurface({
+  killed,
+  onToggleKill,
+  riskFlags,
+  risk,
+  ticket,
+}: RiskProps) {
   return (
     <section className="surface" aria-labelledby="risk-title">
       <div className="surface-scan" aria-hidden />
@@ -66,7 +75,7 @@ export function RiskSurface({ killed, onToggleKill, riskFlags }: RiskProps) {
         Risk
       </h1>
       <p className="surface-sub">
-        Risk Guard loop flags, soft limits, kill-switch status.
+        Risk Guard loop flags, pre-ticket soft-checks, kill-switch status.
       </p>
       <div className="panel-grid">
         <div className="panel">
@@ -120,13 +129,36 @@ export function RiskSurface({ killed, onToggleKill, riskFlags }: RiskProps) {
             </ul>
           )}
         </div>
+        <div className="panel panel-span">
+          <div className="panel-head">
+            <span className="panel-label">Live ticket soft-check</span>
+            <span className={`risk-level ${risk.worst}`}>{risk.worst}</span>
+          </div>
+          <p className="risk-ticket-line">
+            {ticket.side} {ticket.qty} {ticket.symbol} · est. $
+            {risk.notional.toFixed(2)} · book $
+            {RH_PORTFOLIO.totalValue.toFixed(2)} · BP $
+            {RH_PORTFOLIO.buyingPower.toFixed(2)}
+          </p>
+          <ul className="risk-check-list">
+            {risk.checks.map((c) => (
+              <li key={c.id} className={`risk-check ${c.level}`}>
+                <span className={`gate-pip ${c.level === 'pass' ? '' : 'off'} ${c.level}`} />
+                <div>
+                  <div className="risk-check-label">{c.label}</div>
+                  <div className="risk-check-detail">{c.detail}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   )
 }
 
 type AuditProps = {
-  entries: AuditEntry[]
+  entries: readonly AuditEntry[]
 }
 
 export function AuditSurface({ entries }: AuditProps) {
@@ -137,11 +169,17 @@ export function AuditSurface({ entries }: AuditProps) {
         Audit log
       </h1>
       <p className="surface-sub">
-        Append-only — agent actions, previews, confirms, kill/resume.
+        Immutable · append-only — previews, risk-checks, confirms, mock
+        places, kill/resume. No edit or delete.
       </p>
+      <div className="audit-seal">
+        <span className="gate-pip" />
+        Sealed rail · {entries.length} crumbs · newest first
+      </div>
       <table className="audit-table">
         <thead>
           <tr>
+            <th>#</th>
             <th>Time</th>
             <th>Entity</th>
             <th>Action</th>
@@ -151,6 +189,7 @@ export function AuditSurface({ entries }: AuditProps) {
         <tbody>
           {entries.map((e) => (
             <tr key={e.id}>
+              <td className="audit-seq">{e.seq ?? '—'}</td>
               <td className="audit-time">{e.time}</td>
               <td>{e.entity}</td>
               <td>
