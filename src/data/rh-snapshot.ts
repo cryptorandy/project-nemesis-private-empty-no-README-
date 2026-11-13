@@ -5,7 +5,7 @@
  * Agents refresh `public/data/market.json` (+ this file) via MCP; the UI polls
  * that JSON and falls back here if the poll fails. No place-order calls.
  *
- * Captured: 2026-11-13T15:17:57Z via get_equity_quotes / get_crypto_quotes /
+ * Captured: 2026-11-13T15:40:25Z via get_equity_quotes / get_crypto_quotes /
  * get_portfolio / get_equity_positions / get_watchlist_items
  * Account: MCP ••••0788 (agentic)
  *
@@ -41,35 +41,35 @@ export type RhPortfolio = {
   accountMasked: string
 }
 
-export const RH_AS_OF = "2026-11-13T15:17:57Z"
-export const RH_SOURCE_NOTE = "RH MCP bake · desk polls /data/book.json (positions) + /data/market.json; MCP unavailable in browser"
+export const RH_AS_OF = "2026-11-13T15:40:25Z"
+export const RH_SOURCE_NOTE = "RH MCP bake · desk polls /api/book (live) + /data/market.json; agents ingest book without republish"
 
 export const RH_PORTFOLIO: RhPortfolio = {
-  "totalValue": 384.26,
-  "equityValue": 120.61,
-  "optionsValue": 125,
-  "cash": 138.65,
-  "buyingPower": 138.65,
+  "totalValue": 381.18,
+  "equityValue": 118.58,
+  "optionsValue": 28,
+  "cash": 234.6,
+  "buyingPower": 234.6,
   "accountMasked": "••••0788"
 }
 
 export const RH_INDICES: RhQuote[] = [
-  { symbol: "SPY", name: "S&P 500", price: 749.71, prevClose: 757.12, changePct: -0.98, source: 'rh' },
-  { symbol: "QQQ", name: "Nasdaq 100", price: 675.62, prevClose: 688.17, changePct: -1.82, source: 'rh' },
-  { symbol: "IWM", name: "Russell 2000", price: 275.44, prevClose: 278.44, changePct: -1.08, source: 'rh' },
+  { symbol: "SPY", name: "S&P 500", price: 749.8, prevClose: 757.12, changePct: -0.97, source: 'rh' },
+  { symbol: "QQQ", name: "Nasdaq 100", price: 673.055, prevClose: 688.17, changePct: -2.2, source: 'rh' },
+  { symbol: "IWM", name: "Russell 2000", price: 275.86, prevClose: 278.44, changePct: -0.93, source: 'rh' },
 ]
 
 export const RH_BOARD: RhQuote[] = [
-  { symbol: "NVDA", name: "NVIDIA", price: 160.555, prevClose: 166.19, changePct: -3.39, source: 'rh', note: "Holding" },
-  { symbol: "AAPL", name: "Apple", price: 358.334, prevClose: 354.88, changePct: 0.97, source: 'rh' },
-  { symbol: "TSLA", name: "Tesla", price: 388.63, prevClose: 397.45, changePct: -2.22, source: 'rh' },
-  { symbol: "AMD", name: "AMD", price: 532.7, prevClose: 585.3, changePct: -8.99, source: 'rh' },
-  { symbol: "MSFT", name: "Microsoft", price: 520.08, prevClose: 523, changePct: -0.56, source: 'rh' },
-  { symbol: "AMZN", name: "Amazon", price: 266.235, prevClose: 267.44, changePct: -0.45, source: 'rh' },
-  { symbol: "META", name: "Meta", price: 632, prevClose: 623.61, changePct: 1.35, source: 'rh' },
-  { symbol: "SOXL", name: "Direxion Semi 3x", price: 55.915, prevClose: 65.53, changePct: -14.67, source: 'rh', note: "Position · partial sell" },
-  { symbol: "SCHD", name: "Schwab Div", price: 35.825, prevClose: 35.93, changePct: -0.29, source: 'rh', note: "Position" },
-  { symbol: "NVDW", name: "Roundhill NVDA Weekly", price: 23.165, prevClose: 24.17, changePct: -4.16, source: 'rh', note: "Position" },
+  { symbol: "NVDA", name: "NVIDIA", price: 159.17, prevClose: 166.19, changePct: -4.22, source: 'rh', note: "Holding" },
+  { symbol: "AAPL", name: "Apple", price: 358.595, prevClose: 354.88, changePct: 1.05, source: 'rh' },
+  { symbol: "TSLA", name: "Tesla", price: 387.52, prevClose: 397.45, changePct: -2.5, source: 'rh' },
+  { symbol: "AMD", name: "AMD", price: 526.38, prevClose: 585.3, changePct: -10.07, source: 'rh' },
+  { symbol: "MSFT", name: "Microsoft", price: 522.34, prevClose: 523, changePct: -0.13, source: 'rh' },
+  { symbol: "AMZN", name: "Amazon", price: 264.935, prevClose: 267.44, changePct: -0.94, source: 'rh' },
+  { symbol: "META", name: "Meta", price: 626.53, prevClose: 623.61, changePct: 0.47, source: 'rh' },
+  { symbol: "SOXL", name: "Direxion Semi 3x", price: 53.2, prevClose: 65.53, changePct: -18.82, source: 'rh', note: "Position · live book" },
+  { symbol: "SCHD", name: "Schwab Div", price: 35.95, prevClose: 35.93, changePct: 0.06, source: 'rh', note: "Position" },
+  { symbol: "NVDW", name: "Roundhill NVDA Weekly", price: 22.9726, prevClose: 24.17, changePct: -4.95, source: 'rh', note: "Position" },
   { symbol: "XOP", name: "Oil & Gas Explore", price: 182.98, prevClose: 183.11, changePct: -0.07, source: 'rh', note: "Watch · Superstar" },
   { symbol: "ARKW", name: "ARK Next Gen Internet", price: 141.61, prevClose: 143.93, changePct: -1.61, source: 'rh', note: "Watch · Superstar" },
   { symbol: "BILL", name: "Bill.com", price: 53.52, prevClose: 54, changePct: -0.89, source: 'rh', note: "Watch · Superstar" },
@@ -79,8 +79,8 @@ export const RH_BOARD: RhQuote[] = [
 ]
 
 export const RH_CRYPTO: RhQuote[] = [
-  { symbol: "BTC", name: "Bitcoin", price: 68872.755, prevClose: 68404.11, changePct: 0.69, source: 'rh', note: "BTC-USD mark" },
-  { symbol: "ETH", name: "Ethereum", price: 1942.325, prevClose: 1923.615, changePct: 0.97, source: 'rh', note: "ETH-USD mark" },
+  { symbol: "BTC", name: "Bitcoin", price: 68174.96, prevClose: 68404.11, changePct: -0.33, source: 'rh', note: "BTC-USD mark" },
+  { symbol: "ETH", name: "Ethereum", price: 1915.04, prevClose: 1923.615, changePct: -0.45, source: 'rh', note: "ETH-USD mark" },
 ]
 
 export const RH_POSITIONS: RhPosition[] = [
@@ -88,37 +88,37 @@ export const RH_POSITIONS: RhPosition[] = [
     symbol: "NVDA",
     qty: 0.090997,
     avgCost: 164.84,
-    mark: 160.555,
-    value: 14.61,
-    pnl: -0.39,
-    pnlPct: -2.6,
+    mark: 159.17,
+    value: 14.48,
+    pnl: -0.52,
+    pnlPct: -3.47,
   },
   {
     symbol: "SOXL",
     qty: 0.82567,
     avgCost: 44.95,
-    mark: 55.915,
-    value: 46.17,
-    pnl: 9.06,
-    pnlPct: 24.41,
+    mark: 53.2,
+    value: 43.93,
+    pnl: 6.82,
+    pnlPct: 18.38,
   },
   {
     symbol: "SCHD",
     qty: 1,
     avgCost: 35.91,
-    mark: 35.825,
-    value: 35.83,
-    pnl: -0.08,
-    pnlPct: -0.22,
+    mark: 35.95,
+    value: 35.95,
+    pnl: 0.04,
+    pnlPct: 0.11,
   },
   {
     symbol: "NVDW",
     qty: 1.041883,
     avgCost: 24,
-    mark: 23.165,
-    value: 24.14,
-    pnl: -0.87,
-    pnlPct: -3.48,
+    mark: 22.9726,
+    value: 23.93,
+    pnl: -1.08,
+    pnlPct: -4.32,
   },
 ]
 
@@ -147,12 +147,13 @@ export const OPTIONS_HEAT_STUB = [
 ]
 
 export const NEWS_CRAWL = [
-  "RH · MCP ••••0788 equity $120.61 · options $125 · cash $138.65",
-  "Book sync · as of 2026-11-13T15:17:57Z · SOXL qty 0.8257 after $10 user sell",
-  "Crypto Pulse · BTC +0.69% · ETH +0.97% vs prior open",
-  "Scanner Watch · SOXL −14.7% session · semi levered stress",
+  "RH · MCP ••••0788 equity $118.58 · options $28 · cash/BP $234.60",
+  "Live book · as of 2026-11-13T15:40:25Z · SOXL qty 0.8257 @ $53.20",
+  "Crypto Pulse · BTC −0.33% · ETH −0.45% vs prior open",
+  "Scanner Watch · SOXL −18.8% session · semi levered stress",
   "Desk Chief · focus NVDA / SOXL / TSLA · human confirms every ticket",
   "Watch · Randy Superstar list XOP ARKW BILL ALL on board",
   "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place",
-  "Execution Prep · fast path · hot seat one-tap · confirm every order"
+  "Execution Prep · fast path · hot seat one-tap · confirm every order",
+  "Feed · /api/book live ingest · no human republish required for positions"
 ]

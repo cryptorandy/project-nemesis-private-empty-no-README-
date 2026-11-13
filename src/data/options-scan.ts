@@ -3,7 +3,7 @@
  *
  * Captured: 2026-11-13T03:16Z via get_option_chains / get_option_instruments /
  * get_option_quotes / get_earnings_calendar / get_watchlist_items / get_portfolio
- * Account: MCP ••••0788 (856290788 · agentic)
+ * Account: MCP ••••0788 (agentic — resolve via get_accounts)
  *
  * Hard rule: every recommendable contract MUST carry delta/gamma/theta/vega.
  * IV (implied_volatility) included when RH returns it.
@@ -12,7 +12,7 @@
 
 export const OPTIONS_SCAN_AS_OF = '2026-11-13T03:16:07Z'
 
-/** % capital rules for MCP account 856290788 */
+/** % capital rules for MCP account ••••0788 */
 export const CAPITAL_RULES = {
   accountNumberMasked: '••••0788',
   maxPctBuyingPowerPerTrade: 10,

@@ -14,6 +14,8 @@ import {
 export const MARKET_JSON_URL = '/data/market.json'
 /** Positions + portfolio only — preferred over full market bake when newer. */
 export const BOOK_JSON_URL = '/data/book.json'
+/** Live book from agent ingest (Postgres-backed on published host). */
+export const LIVE_BOOK_API_URL = '/api/book'
 
 export type BookSnapshot = {
   schemaVersion: number
@@ -167,12 +169,14 @@ export function parseBookSnapshot(raw: unknown): BookSnapshot | null {
   }
 }
 
-export async function fetchBookSnapshot(
+async function fetchBookFromUrl(
+  url: string,
   signal?: AbortSignal,
 ): Promise<BookSnapshot | null> {
   try {
-    const res = await fetch(BOOK_JSON_URL, {
+    const res = await fetch(url, {
       cache: 'no-store',
+      credentials: 'same-origin',
       signal,
     })
     if (!res.ok) return null
@@ -181,6 +185,18 @@ export async function fetchBookSnapshot(
   } catch {
     return null
   }
+}
+
+/**
+ * Prefer live /api/book (agent-ingested RH), then static /data/book.json.
+ * Continuous truth without waiting for a human republish when ingest is running.
+ */
+export async function fetchBookSnapshot(
+  signal?: AbortSignal,
+): Promise<BookSnapshot | null> {
+  const live = await fetchBookFromUrl(LIVE_BOOK_API_URL, signal)
+  if (live) return live
+  return fetchBookFromUrl(BOOK_JSON_URL, signal)
 }
 
 /** Apply book over market when book asOf is equal or newer. */

@@ -15,12 +15,15 @@ import type {
 } from '../data/market-types'
 import type { QuoteRow } from '../types'
 
-/** Full board poll (quotes + book). */
+/** Full board poll (quotes + static market bake). */
 const MARKET_POLL_MS = 12_000
-/** Positions/portfolio prefer /data/book.json on a tighter cadence. */
-const BOOK_POLL_MS = 8_000
+/**
+ * Live positions/portfolio prefer /api/book (agent ingest) ~every 30s,
+ * falling back to /data/book.json when the API is cold.
+ */
+const BOOK_POLL_MS = 30_000
 /** Marks older than this are labeled stale (agent refresh overdue). */
-const STALE_MS = 15 * 60 * 1000
+const STALE_MS = 3 * 60 * 1000
 
 function toRow(q: MarketQuote): QuoteRow {
   return {
@@ -76,10 +79,9 @@ function deriveFeedStatus(
 }
 
 /**
- * Layer 1 data plane: poll RH MCP bake + gentle tick between refreshes.
- * Positions/portfolio prefer `/data/book.json` when its asOf is newer than
- * the full market bake — external RH sells show after the next agent bake+publish.
- * Agent swarm lives in useAgentSwarm — this hook does not own agent theater.
+ * Layer 1 data plane: poll live /api/book (~30s) + market bake + gentle tick.
+ * Positions/portfolio prefer agent-ingested `/api/book` over static JSON so the
+ * desk tracks RH without a human republish. Agent swarm lives in useAgentSwarm.
  * Never places orders.
  */
 export function useLiveDesk(killed: boolean) {

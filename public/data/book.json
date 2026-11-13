@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-11-13T15:17:57Z",
+  "asOf": "2026-11-13T15:40:25Z",
   "refreshedBy": "agent-mcp",
   "accountMasked": "••••0788",
   "sourceNote": "RH MCP book · prefer over market.json for positions/portfolio",
   "degraded": false,
   "portfolio": {
-    "totalValue": 384.26,
-    "equityValue": 120.61,
-    "optionsValue": 125,
-    "cash": 138.65,
-    "buyingPower": 138.65,
+    "totalValue": 381.18,
+    "equityValue": 118.58,
+    "optionsValue": 28,
+    "cash": 234.6,
+    "buyingPower": 234.6,
     "accountMasked": "••••0788"
   },
   "positions": [
@@ -18,37 +18,37 @@
       "symbol": "NVDA",
       "qty": 0.090997,
       "avgCost": 164.84,
-      "mark": 160.555,
-      "value": 14.61,
-      "pnl": -0.39,
-      "pnlPct": -2.6
+      "mark": 159.17,
+      "value": 14.48,
+      "pnl": -0.52,
+      "pnlPct": -3.47
     },
     {
       "symbol": "SOXL",
       "qty": 0.82567,
       "avgCost": 44.95,
-      "mark": 55.915,
-      "value": 46.17,
-      "pnl": 9.06,
-      "pnlPct": 24.41
+      "mark": 53.2,
+      "value": 43.93,
+      "pnl": 6.82,
+      "pnlPct": 18.38
     },
     {
       "symbol": "SCHD",
       "qty": 1,
       "avgCost": 35.91,
-      "mark": 35.825,
-      "value": 35.83,
-      "pnl": -0.08,
-      "pnlPct": -0.22
+      "mark": 35.95,
+      "value": 35.95,
+      "pnl": 0.04,
+      "pnlPct": 0.11
     },
     {
       "symbol": "NVDW",
       "qty": 1.041883,
       "avgCost": 24,
-      "mark": 23.165,
-      "value": 24.14,
-      "pnl": -0.87,
-      "pnlPct": -3.48
+      "mark": 22.9726,
+      "value": 23.93,
+      "pnl": -1.08,
+      "pnlPct": -4.32
     }
   ]
 }
