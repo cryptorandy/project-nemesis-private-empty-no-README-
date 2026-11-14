@@ -47,10 +47,25 @@ export type RhOptionOrderParams = {
   ref_id?: string
 }
 
+/** Params shaped for Robinhood MCP `preview_crypto_order` / `place_crypto_order`. */
+export type RhCryptoOrderParams = {
+  account_number: string
+  account_resolve: 'agentic_allowed'
+  account_masked: string
+  /** Pair symbol e.g. BTC-USD */
+  symbol: string
+  side: 'buy' | 'sell'
+  type: 'market' | 'limit'
+  quantity: string
+  limit_price?: string
+  time_in_force: 'gfd' | 'gtc'
+  ref_id?: string
+}
+
 export type RhOrderPayload =
   | { asset: 'Equity'; params: RhEquityOrderParams }
   | { asset: 'Option'; params: RhOptionOrderParams }
-  | { asset: 'Crypto'; error: string }
+  | { asset: 'Crypto'; params: RhCryptoOrderParams }
 
 function newRefId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -133,16 +148,46 @@ export function toRhOptionParams(
   return params
 }
 
-export function toRhOrderPayload(ticket: TicketDraft): RhOrderPayload {
+/**
+ * Map desk crypto ticket → RH MCP crypto order params.
+ * Agents pass these to preview_crypto_order then place_crypto_order after confirm.
+ */
+export function toRhCryptoParams(
+  ticket: TicketDraft,
+  refId?: string,
+): RhCryptoOrderParams {
+  const raw = ticket.symbol.trim().toUpperCase()
+  const symbol = raw.includes('-') ? raw : `${raw}-USD`
+  const type = ticket.order === 'Market' ? 'market' : 'limit'
+  const params: RhCryptoOrderParams = {
+    account_number: RH_AGENTIC_ACCOUNT.masked,
+    account_resolve: RH_AGENTIC_ACCOUNT.resolveHint,
+    account_masked: RH_AGENTIC_ACCOUNT.masked,
+    symbol,
+    side: ticket.side === 'Buy' ? 'buy' : 'sell',
+    type,
+    quantity: String(ticket.qty),
+    time_in_force: ticket.tif === 'GTC' ? 'gtc' : 'gfd',
+    ref_id: refId ?? newRefId(),
+  }
+  if (type === 'limit') {
+    params.limit_price = ticket.limit.toFixed(2)
+  }
+  return params
+}
+
+export function toRhOrderPayload(
+  ticket: TicketDraft,
+): RhOrderPayload | { asset: 'Option'; error: string } {
   if (ticket.asset === 'Equity') {
     return { asset: 'Equity', params: toRhEquityParams(ticket) }
   }
   if (ticket.asset === 'Option') {
     const opt = toRhOptionParams(ticket)
     if ('error' in opt) {
-      return { asset: 'Crypto', error: opt.error }
+      return { asset: 'Option', error: opt.error }
     }
     return { asset: 'Option', params: opt }
   }
-  return { asset: 'Crypto', error: 'Crypto RH place not wired on fast path' }
+  return { asset: 'Crypto', params: toRhCryptoParams(ticket) }
 }

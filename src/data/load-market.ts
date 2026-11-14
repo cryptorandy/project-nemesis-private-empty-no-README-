@@ -1,4 +1,5 @@
-import type { MarketSnapshot } from './market-types'
+import type { BookOrder, MarketSnapshot } from './market-types'
+import { BOOK_ORDERS } from './orders-bake'
 import {
   NEWS_CRAWL,
   RH_AS_OF,
@@ -26,6 +27,7 @@ export type BookSnapshot = {
   degraded: boolean
   portfolio: MarketSnapshot['portfolio']
   positions: MarketSnapshot['positions']
+  orders?: BookOrder[]
 }
 
 /** Baked fallback when poll fails or is still loading. */
@@ -50,7 +52,7 @@ export function bakedMarketSnapshot(): MarketSnapshot {
 export function bakedBookSnapshot(): BookSnapshot {
   const full = bakedMarketSnapshot()
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     asOf: full.asOf,
     refreshedBy: full.refreshedBy,
     accountMasked: full.accountMasked,
@@ -58,6 +60,7 @@ export function bakedBookSnapshot(): BookSnapshot {
     degraded: full.degraded,
     portfolio: { ...full.portfolio },
     positions: full.positions.map((p) => ({ ...p })),
+    orders: BOOK_ORDERS.map((o) => ({ ...o })),
   }
 }
 
@@ -169,6 +172,9 @@ export function parseBookSnapshot(raw: unknown): BookSnapshot | null {
       ...p,
       asset: p.asset === 'option' || p.asset === 'crypto' ? p.asset : 'equity',
     })),
+    orders: Array.isArray(o.orders)
+      ? (o.orders as BookOrder[]).map((ord) => ({ ...ord }))
+      : BOOK_ORDERS.map((ord) => ({ ...ord })),
   }
 }
 
@@ -251,6 +257,9 @@ export function mergeBookIntoMarket(
     degraded: book.degraded || market.degraded,
     portfolio: { ...book.portfolio },
     positions: book.positions.map((p) => ({ ...p })),
+    orders: (book.orders ?? market.orders ?? BOOK_ORDERS).map((o) => ({
+      ...o,
+    })),
   }
 }
 

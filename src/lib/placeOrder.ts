@@ -1,8 +1,10 @@
 import type { TicketDraft } from '../types'
 import { mockPlaceOrder, type MockPlaceResult } from './mockPlace'
 import {
+  toRhCryptoParams,
   toRhEquityParams,
   toRhOptionParams,
+  type RhCryptoOrderParams,
   type RhEquityOrderParams,
   type RhOptionOrderParams,
 } from './rhOrderParams'
@@ -26,7 +28,7 @@ export type PlaceResult = {
   placedAt: string
   summary: string
   note: string
-  rhParams?: RhEquityOrderParams | RhOptionOrderParams
+  rhParams?: RhEquityOrderParams | RhOptionOrderParams | RhCryptoOrderParams
   /** Agents: call review_* then place_* with these params after UI confirm. */
   agentHint: string
 }
@@ -45,12 +47,33 @@ export function placeAfterConfirm(
   ticket: TicketDraft,
   opts?: { preferLiveIntent?: boolean },
 ): PlaceResult | PlaceRefusal {
-  if (ticket.asset === 'Crypto') {
-    return { ok: false, reason: 'Crypto place not armed on fast path' }
-  }
-
   const preferLive =
     opts?.preferLiveIntent !== false && LIVE_PLACE_VIA_AGENT_BRIDGE
+
+  if (ticket.asset === 'Crypto') {
+    const rhParams = toRhCryptoParams(ticket)
+    if (preferLive) {
+      const orderId = `live-intent-${rhParams.ref_id ?? Date.now().toString(36)}`
+      return {
+        ok: true,
+        mode: 'live-intent',
+        orderId,
+        placedAt: new Date().toISOString(),
+        summary: `${ticket.side.toUpperCase()} ${ticket.qty} ${rhParams.symbol} crypto`,
+        note: `Confirmed · queued RH place_crypto_order on ${RH_AGENTIC_ACCOUNT.masked} — agent must preview_crypto_order then place_crypto_order (never unsupervised)`,
+        rhParams,
+        agentHint:
+          'MCP: preview_crypto_order(params) → on clear + human already confirmed in desk → place_crypto_order(params)',
+      }
+    }
+    const mock: MockPlaceResult = mockPlaceOrder(ticket)
+    return {
+      ...mock,
+      mode: 'mock',
+      rhParams,
+      agentHint: 'Mock only — RH crypto place not invoked',
+    }
+  }
 
   if (ticket.asset === 'Equity') {
     const rhParams = toRhEquityParams(ticket)
@@ -80,7 +103,6 @@ export function placeAfterConfirm(
   // Option
   const opt = toRhOptionParams(ticket)
   if ('error' in opt) {
-    // Still allow mock/intent with desk metadata so scanner flow is testable
     const mock = mockPlaceOrder(ticket)
     return {
       ok: true,

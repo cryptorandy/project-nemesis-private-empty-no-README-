@@ -92,10 +92,17 @@ Specialists (Chief → Alert → Scanner → Depth → Exec) run **real timed lo
 - **Live Scanner Watch** — `run_scan` Daily gainers hits + MCP ok status; SCAN badges on quote grid when symbols overlap
 - **Research Depth** — focus-symbol workspace (fundamentals, RSI/MACD, earnings, SEC) from RH MCP bake
 
+### UI layer (TD-33)
+
+- **Orders / fills strip** — RH order ids from equity/option/crypto order bake on board
+- **Agent mute / focus** — per-agent Mute + focus symbol input (no full kill)
+- **Crypto ticket arming** — same preview → confirm → live-intent (`preview_crypto_order` / `place_crypto_order`)
+- **Mobile ritual** — phone keeps P&L + positions + ticket + confirm + kill; TV board chrome hidden
+
 ## Still mock / stub
 
 - Ticket preview / confirm / place (mock or live-intent only — **never** calls place-order from the browser)
-- Crypto ticket fields (stub; equity + options are first-class)
+- ~~Crypto ticket fields (stub)~~ → crypto armed on confirm ritual (live-intent)
 - Size / % capital soft-checks are advisory vs live book (human ack on warn/block)
 
 ## Pro execution UX (layer 3)

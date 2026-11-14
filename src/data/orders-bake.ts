@@ -1,0 +1,86 @@
+/**
+ * RH order / fill bake for desk open-orders strip (get_equity_orders /
+ * get_option_orders / get_crypto_orders). No open working orders at capture —
+ * recent fills + cancels for audit crumbs. Never places.
+ */
+import type { BookOrder } from './market-types'
+
+export const ORDERS_AS_OF = '2026-11-14T16:35:00Z'
+
+export const BOOK_ORDERS: BookOrder[] = [
+  {
+    id: '6af76d42-78ea-4abf-8b97-055954b83723',
+    asset: 'equity',
+    symbol: 'NVDA',
+    side: 'buy',
+    type: 'market',
+    state: 'filled',
+    qty: 0.092194,
+    filledQty: 0.092194,
+    avgPrice: 162.7,
+    limitPrice: null,
+    createdAt: '2026-11-13T20:04:18Z',
+    updatedAt: '2026-11-13T20:04:18Z',
+    rhOrderId: '6af76d42-78ea-4abf-8b97-055954b83723',
+  },
+  {
+    id: '6af76d2e-383a-4150-97b1-a32336d99673',
+    asset: 'equity',
+    symbol: 'SOXL',
+    side: 'buy',
+    type: 'market',
+    state: 'filled',
+    qty: 0.103305,
+    filledQty: 0.103305,
+    avgPrice: 58.08,
+    limitPrice: null,
+    createdAt: '2026-11-13T20:03:58Z',
+    updatedAt: '2026-11-13T20:03:58Z',
+    rhOrderId: '6af76d2e-383a-4150-97b1-a32336d99673',
+  },
+  {
+    id: '6af72514-38ac-4d0b-a425-a401e865e091',
+    asset: 'equity',
+    symbol: 'SOXL',
+    side: 'sell',
+    type: 'market',
+    state: 'filled',
+    qty: 0.17433,
+    filledQty: 0.17433,
+    avgPrice: 57.3548,
+    limitPrice: null,
+    createdAt: '2026-11-13T14:56:20Z',
+    updatedAt: '2026-11-13T14:56:20Z',
+    rhOrderId: '6af72514-38ac-4d0b-a425-a401e865e091',
+  },
+  {
+    id: '6af77954-nvda-opt-fill',
+    asset: 'option',
+    symbol: 'NVDA',
+    side: 'buy',
+    type: 'limit',
+    state: 'filled',
+    qty: 1,
+    filledQty: 1,
+    avgPrice: 0.52,
+    limitPrice: 0.52,
+    createdAt: '2026-11-13T20:55:48Z',
+    updatedAt: '2026-11-13T20:55:48Z',
+    rhOrderId: '6af77954-a000-4000-8000-000000000001',
+  },
+  {
+    id: '6af7794b-nvda-opt-cxl',
+    asset: 'option',
+    symbol: 'NVDA',
+    side: 'buy',
+    type: 'limit',
+    state: 'cancelled',
+    qty: 1,
+    filledQty: 0,
+    avgPrice: null,
+    limitPrice: 0.51,
+    createdAt: '2026-11-13T20:55:39Z',
+    updatedAt: '2026-11-13T20:55:39Z',
+    rhOrderId: '6af7794b-a000-4000-8000-000000000002',
+  },
+]

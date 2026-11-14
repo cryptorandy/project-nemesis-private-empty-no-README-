@@ -134,7 +134,6 @@ export function TicketRail({
                 onClick={() => onChange({ asset })}
               >
                 {asset}
-                {asset === 'Crypto' ? ' ·off' : ''}
               </button>
             ))}
           </div>
@@ -150,7 +149,8 @@ export function TicketRail({
 
         {ticket.asset === 'Crypto' && (
           <div className="stub-note">
-            Crypto place not armed on fast path — equity/option only.
+            Crypto armed · preview → confirm → live-intent
+            preview_crypto_order / place_crypto_order (never unsupervised).
           </div>
         )}
 

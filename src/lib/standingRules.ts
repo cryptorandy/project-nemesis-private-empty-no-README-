@@ -120,13 +120,7 @@ export function evaluateStandingRules(
   const notional = ticketNotional(ticket, mark)
   const blocks: StandingBlock[] = []
 
-  if (ticket.asset === 'Crypto') {
-    blocks.push({
-      id: 'asset',
-      label: 'Asset class',
-      detail: 'Crypto place path not armed on fast desk — equity/option only',
-    })
-  }
+  // Crypto armed on same confirm ritual as equity/options (live-intent bridge).
 
   const sym = ticket.symbol.trim().toUpperCase()
   if (rules.allowedSymbolsMode === 'watchlist_only') {

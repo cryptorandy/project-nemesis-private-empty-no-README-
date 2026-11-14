@@ -7,6 +7,7 @@ export type AgentLoopStatus =
   | 'idle'
   | 'escalate'
   | 'paused'
+  | 'muted'
 
 export type Agent = {
   id: string
