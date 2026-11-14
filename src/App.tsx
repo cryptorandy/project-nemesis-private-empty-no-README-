@@ -6,7 +6,7 @@ import {
   type OptionBuyIdea,
 } from './agents/optionsScanner'
 import { useAgentSwarm } from './agents/useAgentSwarm'
-import type { StagedTicket } from './agents/types'
+import type { DeskAlertHit, StagedTicket } from './agents/types'
 import { AgentRail } from './components/AgentRail'
 import { ConfirmGate } from './components/ConfirmGate'
 import { DeskBoard } from './components/DeskBoard'
@@ -84,6 +84,7 @@ function App() {
   const [optionIdeas, setOptionIdeas] = useState<OptionBuyIdea[]>(() =>
     rankOptionBuyIdeas(),
   )
+  const [alertHits, setAlertHits] = useState<DeskAlertHit[]>([])
   const [hotSeat, setHotSeat] = useState(false)
   const [standingRules, setStandingRules] = useState<StandingRules>(() =>
     defaultStandingRules(),
@@ -176,7 +177,8 @@ function App() {
       const fromScanner =
         staged.stagedBy === 'scan' ||
         staged.stagedBy === 'flow' ||
-        staged.stagedBy === 'options-scan'
+        staged.stagedBy === 'options-scan' ||
+        staged.stagedBy === 'alert'
       if (
         gateRef.current ||
         phaseRef.current === 'previewed' ||
@@ -241,6 +243,29 @@ function App() {
     [applyStaged],
   )
 
+  const onStageAlert = useCallback(
+    (hit: DeskAlertHit) => {
+      applyStaged(
+        {
+          asset: hit.assetClass === 'crypto' ? 'Crypto' : 'Equity',
+          side: 'Buy',
+          symbol: hit.symbol,
+          qty: 1,
+          order: 'Limit',
+          limit: hit.suggestLimit,
+          tif: 'Day',
+          reason: `Alert Watch · ${hit.detail}`,
+          stagedBy: 'alert',
+          stagedAt: new Date().toISOString(),
+          alertId: hit.alertId,
+        },
+        'Alert Watch',
+      )
+      setSurface('board')
+    },
+    [applyStaged],
+  )
+
   const onSwarmAudit = useCallback(
     (entity: string, action: 'brief' | 'scan' | 'risk', details: string) => {
       if (
@@ -260,8 +285,11 @@ function App() {
     positions: live.positions,
     onStageTicket,
     onOptionIdeas: setOptionIdeas,
+    onAlertHits: setAlertHits,
     onAudit: onSwarmAudit,
   })
+
+  const boardAlerts = alertHits.length ? alertHits : swarm.alertHits
 
   const boardIdeas = optionIdeas.length ? optionIdeas : swarm.optionIdeas
 
@@ -531,6 +559,7 @@ function App() {
             briefs={swarm.briefs}
             deskBrief={swarm.deskBrief}
             optionIdeas={boardIdeas}
+            alertHits={boardAlerts}
             tape={live.tape}
             newsLine={swarm.newsLine || live.newsLine}
             clock={live.clock}
@@ -546,6 +575,7 @@ function App() {
             }
             onPickSymbol={pickSymbol}
             onStageIdea={onStageIdea}
+            onStageAlert={onStageAlert}
           />
         )}
         {surface === 'research' && (

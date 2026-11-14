@@ -1,4 +1,7 @@
 import {
+  ALERT_CONFIGS,
+  ALERT_FIRES,
+  ALERT_MARKS,
   CRYPTO_MARKS,
   EARNINGS_NEAR,
   FILING_HITS,
@@ -19,6 +22,7 @@ import type {
   AgentBrief,
   AgentId,
   BriefSeverity,
+  DeskAlertHit,
   LoopResult,
   SwarmMarketView,
   StagedTicket,
@@ -549,6 +553,90 @@ export function runExecPrep(
   }
 }
 
+/**
+ * Alert Watch — RH get_alerts / get_alert_log bake.
+ * Surfaces unread fires; stages equity draft only (never places).
+ */
+export function runAlertWatch(
+  market: SwarmMarketView,
+  loopN: number,
+): LoopResult {
+  const enabled = ALERT_CONFIGS.filter((a) => a.enabled)
+  const unread = ALERT_FIRES.filter((f) => !f.read)
+  const fire = unread[loopN % Math.max(unread.length, 1)] ?? ALERT_FIRES[0]
+  const mark =
+    market.board.find((q) => q.symbol === fire?.symbol)?.price ??
+    ALERT_MARKS[fire?.symbol ?? ''] ??
+    fire?.triggeredPrice ??
+    0
+
+  const alertHits: DeskAlertHit[] = (unread.length ? unread : ALERT_FIRES)
+    .slice(0, 4)
+    .map((f) => {
+      const lim =
+        market.board.find((q) => q.symbol === f.symbol)?.price ??
+        ALERT_MARKS[f.symbol] ??
+        f.triggeredPrice
+      const cond = f.conditionType.replace(/_/g, ' ')
+      return {
+        id: f.logId,
+        alertId: f.alertId,
+        symbol: f.symbol,
+        assetClass: f.assetClass,
+        condition: cond,
+        detail: `${cond} ${f.targetPrice} · fired ${f.triggeredPrice}`,
+        triggeredAt: f.triggeredAt,
+        unread: !f.read,
+        suggestLimit: Math.round(lim * 100) / 100,
+      }
+    })
+
+  let severity: BriefSeverity = 'info'
+  let headline = `${enabled.length} alerts armed`
+  let detail = enabled
+    .slice(0, 3)
+    .map((a) => `${a.symbol} ${a.conditionType.replace(/_/g, ' ')} ${a.targetPrice}`)
+    .join(' · ')
+  const symbols = [...new Set(enabled.map((a) => a.symbol))]
+
+  let staged: StagedTicket | undefined
+  if (fire && unread.length) {
+    severity = 'escalate'
+    headline = `ALERT · ${fire.symbol} ${fire.conditionType.replace(/_/g, ' ')}`
+    detail = `Fired ${fire.triggeredPrice} vs ${fire.targetPrice} · as of ${fire.triggeredAt.slice(0, 16)}Z · Stage only`
+    symbols.unshift(fire.symbol)
+    if (loopN % 3 === 1 && fire.assetClass === 'equity') {
+      staged = {
+        asset: 'Equity',
+        side: 'Buy',
+        symbol: fire.symbol,
+        qty: 1,
+        order: 'Limit',
+        limit: Math.round(mark * 100) / 100,
+        tif: 'Day',
+        reason: `Alert Watch · ${fire.conditionType} ${fire.targetPrice} fired @ ${fire.triggeredPrice}`,
+        stagedBy: 'alert',
+        stagedAt: isoNow(),
+        alertId: fire.alertId,
+      }
+    }
+  } else if (enabled.length) {
+    severity = 'watch'
+    headline = `Watching · ${symbols.join('/')}`
+  }
+
+  const b = brief('alrt', headline, detail, severity, [...new Set(symbols)].slice(0, 4))
+  return {
+    agentId: 'alrt',
+    status: statusFrom(severity),
+    thought: headline,
+    brief: b,
+    activity: activity('alrt', `${headline} — ${detail}`, `${loopN}`),
+    stagedTicket: staged,
+    alertHits,
+  }
+}
+
 export function runAgent(
   id: AgentId,
   market: SwarmMarketView,
@@ -575,5 +663,7 @@ export function runAgent(
       return runPortfolio(market, loopN)
     case 'exec':
       return runExecPrep(market, briefs, riskFlags, loopN)
+    case 'alrt':
+      return runAlertWatch(market, loopN)
   }
 }

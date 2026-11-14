@@ -18,6 +18,7 @@ export type AgentId =
   | 'news'
   | 'book'
   | 'exec'
+  | 'alrt'
 
 export type BriefSeverity = 'info' | 'watch' | 'escalate'
 
@@ -32,10 +33,26 @@ export type AgentBrief = {
 
 export type StagedTicket = TicketDraft & {
   reason: string
-  stagedBy: 'exec' | 'flow' | 'scan' | 'options-scan'
+  stagedBy: 'exec' | 'flow' | 'scan' | 'options-scan' | 'alert'
   stagedAt: string
   /** Optional link back to ranked options idea */
   ideaId?: string
+  /** Optional RH alert id that staged this ticket */
+  alertId?: string
+}
+
+/** Fired / configured RH alert surfaced on the desk (stage only — never place). */
+export type DeskAlertHit = {
+  id: string
+  alertId: string
+  symbol: string
+  assetClass: 'equity' | 'crypto'
+  condition: string
+  detail: string
+  triggeredAt: string
+  unread: boolean
+  /** Suggested limit for one-tap Stage into ticket rail */
+  suggestLimit: number
 }
 
 export type SwarmMarketView = {
@@ -54,6 +71,7 @@ export type LoopResult = {
   stagedTicket?: StagedTicket
   riskFlags?: string[]
   optionIdeas?: OptionBuyIdea[]
+  alertHits?: DeskAlertHit[]
 }
 
 export type DeskSwarmState = {
@@ -64,6 +82,7 @@ export type DeskSwarmState = {
   riskFlags: string[]
   stagedTicket: StagedTicket | null
   optionIdeas: OptionBuyIdea[]
+  alertHits: DeskAlertHit[]
   newsLine: string
   loopCount: number
 }

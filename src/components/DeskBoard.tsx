@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { OptionBuyIdea } from '../agents/optionsScanner'
-import type { AgentBrief, AgentId } from '../agents/types'
+import type { AgentBrief, AgentId, DeskAlertHit } from '../agents/types'
 import { formatMoney, formatPct } from '../data/mock'
 import type { FeedStatus, MarketPortfolio, MarketPosition } from '../data/market-types'
 import { OPTIONS_SCAN_AS_OF } from '../data/options-scan'
@@ -18,6 +18,7 @@ type DeskBoardProps = {
   briefs: Partial<Record<AgentId, AgentBrief>>
   deskBrief: AgentBrief | null
   optionIdeas: OptionBuyIdea[]
+  alertHits: DeskAlertHit[]
   tape: QuoteRow[]
   newsLine: string
   clock: string
@@ -32,6 +33,16 @@ type DeskBoardProps = {
   onPickSymbol: (symbol: string) => void
   /** One-tap stage into ticket rail — never places. */
   onStageIdea: (idea: OptionBuyIdea) => void
+  /** One-tap stage from Alert Watch — never places. */
+  onStageAlert: (hit: DeskAlertHit) => void
+}
+
+function positionLabel(p: MarketPosition): string {
+  return p.display ?? p.symbol
+}
+
+function positionKey(p: MarketPosition, i: number): string {
+  return p.id ?? `${p.asset ?? 'equity'}-${p.symbol}-${p.optionId ?? i}`
 }
 
 function feedLabel(status: FeedStatus): string {
@@ -67,6 +78,7 @@ export function DeskBoard({
   briefs,
   deskBrief,
   optionIdeas,
+  alertHits,
   tape,
   newsLine,
   clock,
@@ -80,6 +92,7 @@ export function DeskBoard({
   onSelectAgent,
   onPickSymbol,
   onStageIdea,
+  onStageAlert,
 }: DeskBoardProps) {
   const bookPnl = positions.reduce((s, p) => s + p.pnl, 0)
 
@@ -218,6 +231,7 @@ export function DeskBoard({
             <thead>
               <tr>
                 <th>Sym</th>
+                <th>Asset</th>
                 <th>Qty</th>
                 <th>Mark</th>
                 <th>Value</th>
@@ -225,22 +239,32 @@ export function DeskBoard({
               </tr>
             </thead>
             <tbody>
-              {positions.map((p) => (
-                <tr key={p.symbol}>
+              {positions.map((p, i) => (
+                <tr key={positionKey(p, i)}>
                   <td>
                     <button
                       type="button"
                       className="linkish"
                       onClick={() => onPickSymbol(p.symbol)}
+                      title={positionLabel(p)}
                     >
-                      {p.symbol}
+                      {positionLabel(p)}
                     </button>
+                  </td>
+                  <td className="dim">
+                    {(p.asset ?? 'equity').slice(0, 3)}
                   </td>
                   <td>
                     {Number.isInteger(p.qty) ? String(p.qty) : p.qty.toFixed(4)}
                   </td>
                   <td
-                    className={flashKeys[p.symbol] ? 'flash-td' : undefined}
+                    className={
+                      p.asset !== 'option' &&
+                      p.asset !== 'crypto' &&
+                      flashKeys[p.symbol]
+                        ? 'flash-td'
+                        : undefined
+                    }
                   >
                     {formatMoney(p.mark)}
                   </td>
@@ -356,6 +380,60 @@ export function DeskBoard({
                   </li>
                 )
               })}
+            </ul>
+          )}
+        </div>
+
+        {/* Alert Watch — stage only */}
+        <div className="zone zone-alerts">
+          <header className="zone-head">
+            <h2>Alerts</h2>
+            <span className="zone-tag">ALRT · stage only</span>
+          </header>
+          {alertHits.length === 0 ? (
+            <p className="opt-empty dim">
+              Waiting Alert Watch · RH get_alerts / get_alert_log
+            </p>
+          ) : (
+            <ul className="alert-hit-list">
+              {alertHits.map((hit) => (
+                <li key={hit.id}>
+                  <article
+                    className={`alert-hit${hit.unread ? ' unread' : ''}`}
+                  >
+                    <div className="alert-hit-top">
+                      <button
+                        type="button"
+                        className="linkish"
+                        onClick={() => onPickSymbol(hit.symbol)}
+                      >
+                        {hit.symbol}
+                      </button>
+                      <span className="dim">{hit.condition}</span>
+                      {hit.unread ? (
+                        <span className="heat warn">unread</span>
+                      ) : null}
+                    </div>
+                    <p className="alert-hit-detail" title={hit.detail}>
+                      {hit.detail}
+                    </p>
+                    <div className="opt-idea-foot">
+                      <span className="dim">
+                        {hit.triggeredAt.slice(0, 16).replace('T', ' ')}Z
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-stage"
+                        disabled={killed}
+                        onClick={() => onStageAlert(hit)}
+                        title="Stage into ticket rail — confirm still required"
+                      >
+                        Stage
+                      </button>
+                    </div>
+                  </article>
+                </li>
+              ))}
             </ul>
           )}
         </div>

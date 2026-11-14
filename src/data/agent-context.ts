@@ -10,7 +10,7 @@
  * Agents never place orders. Execution Prep only stages draft tickets.
  */
 
-export const AGENT_CONTEXT_AS_OF = '2026-11-13T02:40:33Z'
+export const AGENT_CONTEXT_AS_OF = '2026-11-14T20:51:00Z'
 
 /**
  * Soft limits aligned to prefs: 10% BP / trade, 5% day loss, watchlist-only.
@@ -59,27 +59,102 @@ export type OptionPosBrief = {
 }
 
 /** Open option positions on MCP account (instruments resolved). */
-/** average_price from MCP × multiplier ≈ position premium dollars (~$105 book). */
+/** average_price from MCP is $/contract; avgPremium = that / 100. */
 export const OPTION_POSITIONS: OptionPosBrief[] = [
   {
     underlying: 'NVDA',
     side: 'call',
-    strike: 202.5,
-    expiry: '2026-11-18',
-    qty: 1,
-    avgPremium: 0.49,
-    notionalApprox: 49,
-  },
-  {
-    underlying: 'SOXL',
-    side: 'call',
-    strike: 95,
+    strike: 197.5,
     expiry: '2026-11-20',
     qty: 1,
     avgPremium: 0.52,
     notionalApprox: 52,
   },
+  {
+    underlying: 'SOXL',
+    side: 'call',
+    strike: 80,
+    expiry: '2026-11-20',
+    qty: 1,
+    avgPremium: 0.57,
+    notionalApprox: 57,
+  },
 ]
+
+export type AlertConfigBake = {
+  alertId: string
+  symbol: string
+  assetClass: 'equity' | 'crypto'
+  conditionType: string
+  targetPrice: number
+  enabled: boolean
+}
+
+export type AlertFireBake = {
+  logId: string
+  alertId: string
+  symbol: string
+  assetClass: 'equity' | 'crypto'
+  conditionType: string
+  targetPrice: number
+  triggeredPrice: number
+  triggeredAt: string
+  read: boolean
+}
+
+/** Configured RH alerts (get_alerts) — Alert Watch loops over these. */
+export const ALERT_CONFIGS: AlertConfigBake[] = [
+  {
+    alertId: '2792a998-5fa1-4ec0-aea7-baa485bfa9b4',
+    symbol: 'INTC',
+    assetClass: 'equity',
+    conditionType: 'price_above',
+    targetPrice: 68,
+    enabled: true,
+  },
+  {
+    alertId: 'c7c9ba73-20dd-46ac-9b74-df6ec80ed985',
+    symbol: 'INTC',
+    assetClass: 'equity',
+    conditionType: 'price_below',
+    targetPrice: 62,
+    enabled: true,
+  },
+]
+
+/**
+ * Fired alert log (get_alert_log) — unread first.
+ * Captured 2026-11-14 · agents stage tickets only; never place.
+ */
+export const ALERT_FIRES: AlertFireBake[] = [
+  {
+    logId: '01a1d078-a84b-7d31-8550-75882d248922',
+    alertId: 'c7c9ba73-20dd-46ac-9b74-df6ec80ed985',
+    symbol: 'INTC',
+    assetClass: 'equity',
+    conditionType: 'price_below',
+    targetPrice: 62,
+    triggeredPrice: 61.99,
+    triggeredAt: '2026-11-12T15:55:30Z',
+    read: false,
+  },
+  {
+    logId: '01a1ca7a-db90-7cf1-a544-a8eec95a41d7',
+    alertId: 'c7c9ba73-20dd-46ac-9b74-df6ec80ed985',
+    symbol: 'INTC',
+    assetClass: 'equity',
+    conditionType: 'price_below',
+    targetPrice: 62,
+    triggeredPrice: 61.93,
+    triggeredAt: '2026-11-11T12:00:11Z',
+    read: false,
+  },
+]
+
+/** Last known INTC mark for Alert Watch stage limit (get_equity_quotes). */
+export const ALERT_MARKS: Record<string, number> = {
+  INTC: 59.665,
+}
 
 export type EarningsEvent = {
   symbol: string
@@ -186,23 +261,23 @@ export type CryptoMark = {
 export const CRYPTO_MARKS: CryptoMark[] = [
   {
     symbol: 'BTC',
-    mark: 70263.71,
-    open: 73638.24,
-    changePct: ((70263.71 - 73638.24) / 73638.24) * 100,
+    mark: 65282.44,
+    open: 67023.37,
+    changePct: ((65282.44 - 67023.37) / 67023.37) * 100,
   },
   {
     symbol: 'ETH',
-    mark: 1994.92,
-    open: 2048.225,
-    changePct: ((1994.92 - 2048.225) / 2048.225) * 100,
+    mark: 1816.915,
+    open: 1897.43,
+    changePct: ((1816.915 - 1897.43) / 1897.43) * 100,
   },
 ]
 
 export const PORTFOLIO_MARKS = {
-  totalValue: 384.26,
-  equityValue: 120.61,
-  optionsValue: 125,
-  cash: 138.65,
-  buyingPower: 138.65,
+  totalValue: 371.5,
+  equityValue: 147.03,
+  optionsValue: 104,
+  cash: 120.47,
+  buyingPower: 120.47,
   accountMasked: '••••0788',
 }

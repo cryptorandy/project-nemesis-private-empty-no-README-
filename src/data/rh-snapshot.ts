@@ -23,13 +23,20 @@ export type RhQuote = {
 }
 
 export type RhPosition = {
+  id?: string
+  asset?: 'equity' | 'option' | 'crypto'
   symbol: string
+  display?: string
   qty: number
   avgCost: number
   mark: number
   value: number
   pnl: number
   pnlPct: number
+  optionRight?: 'Call' | 'Put'
+  optionStrike?: number
+  optionExpiry?: string
+  optionId?: string
 }
 
 export type RhPortfolio = {
@@ -41,15 +48,15 @@ export type RhPortfolio = {
   accountMasked: string
 }
 
-export const RH_AS_OF = "2026-11-13T16:25:50Z"
-export const RH_SOURCE_NOTE = "RH MCP bake · option sold · cash/BP $256.55 · options $0 · desk still needs ingest secret for auto-refresh"
+export const RH_AS_OF = "2026-11-14T20:51:00Z"
+export const RH_SOURCE_NOTE = "RH MCP bake · equity+option book v2 · cash/BP $120.47 · options $104 · book-pusher needs ingest secret for auto-refresh"
 
 export const RH_PORTFOLIO: RhPortfolio = {
-  "totalValue": 375.62,
-  "equityValue": 119.07,
-  "optionsValue": 0,
-  "cash": 256.55,
-  "buyingPower": 256.55,
+  "totalValue": 371.5,
+  "equityValue": 147.03,
+  "optionsValue": 104,
+  "cash": 120.47,
+  "buyingPower": 120.47,
   "accountMasked": "••••0788"
 }
 
@@ -60,16 +67,16 @@ export const RH_INDICES: RhQuote[] = [
 ]
 
 export const RH_BOARD: RhQuote[] = [
-  { symbol: "NVDA", name: "NVIDIA", price: 159.765, prevClose: 166.19, changePct: -3.87, source: 'rh', note: "Holding" },
+  { symbol: "NVDA", name: "NVIDIA", price: 162.8201, prevClose: 166.19, changePct: -2.03, source: 'rh', note: "Holding · +197.5c" },
   { symbol: "AAPL", name: "Apple", price: 358.595, prevClose: 354.88, changePct: 1.05, source: 'rh' },
   { symbol: "TSLA", name: "Tesla", price: 387.52, prevClose: 397.45, changePct: -2.5, source: 'rh' },
   { symbol: "AMD", name: "AMD", price: 526.38, prevClose: 585.3, changePct: -10.07, source: 'rh' },
   { symbol: "MSFT", name: "Microsoft", price: 522.34, prevClose: 523, changePct: -0.13, source: 'rh' },
   { symbol: "AMZN", name: "Amazon", price: 264.935, prevClose: 267.44, changePct: -0.94, source: 'rh' },
   { symbol: "META", name: "Meta", price: 626.53, prevClose: 623.61, changePct: 0.47, source: 'rh' },
-  { symbol: "SOXL", name: "Direxion Semi 3x", price: 54.14, prevClose: 65.53, changePct: -17.38, source: 'rh', note: "Position · live book" },
-  { symbol: "SCHD", name: "Schwab Div", price: 35.94, prevClose: 35.93, changePct: 0.03, source: 'rh', note: "Position" },
-  { symbol: "NVDW", name: "Roundhill NVDA Weekly", price: 22.84, prevClose: 24.17, changePct: -5.5, source: 'rh', note: "Position" },
+  { symbol: "SOXL", name: "Direxion Semi 3x", price: 58.3499, prevClose: 65.53, changePct: -10.96, source: 'rh', note: "Holding · +80c" },
+  { symbol: "SCHD", name: "Schwab Div", price: 36.1, prevClose: 35.93, changePct: 0.47, source: 'rh', note: "Position" },
+  { symbol: "NVDW", name: "Roundhill NVDA Weekly", price: 23.64, prevClose: 24.17, changePct: -2.19, source: 'rh', note: "Position" },
   { symbol: "XOP", name: "Oil & Gas Explore", price: 182.98, prevClose: 183.11, changePct: -0.07, source: 'rh', note: "Watch · Superstar" },
   { symbol: "ARKW", name: "ARK Next Gen Internet", price: 141.61, prevClose: 143.93, changePct: -1.61, source: 'rh', note: "Watch · Superstar" },
   { symbol: "BILL", name: "Bill.com", price: 53.52, prevClose: 54, changePct: -0.89, source: 'rh', note: "Watch · Superstar" },
@@ -79,46 +86,90 @@ export const RH_BOARD: RhQuote[] = [
 ]
 
 export const RH_CRYPTO: RhQuote[] = [
-  { symbol: "BTC", name: "Bitcoin", price: 68174.96, prevClose: 68404.11, changePct: -0.33, source: 'rh', note: "BTC-USD mark" },
-  { symbol: "ETH", name: "Ethereum", price: 1915.04, prevClose: 1923.615, changePct: -0.45, source: 'rh', note: "ETH-USD mark" },
+  { symbol: "BTC", name: "Bitcoin", price: 65282.44, prevClose: 67023.37, changePct: -2.6, source: 'rh', note: "BTC-USD mark" },
+  { symbol: "ETH", name: "Ethereum", price: 1816.915, prevClose: 1897.43, changePct: -4.24, source: 'rh', note: "ETH-USD mark" },
 ]
 
 export const RH_POSITIONS: RhPosition[] = [
   {
+    id: "eq-NVDA",
+    asset: "equity",
     symbol: "NVDA",
-    qty: 0.090997,
-    avgCost: 164.84,
-    mark: 159.765,
-    value: 14.54,
-    pnl: -0.46,
-    pnlPct: -3.07,
+    display: "NVDA",
+    qty: 0.183191,
+    avgCost: 163.76,
+    mark: 162.8201,
+    value: 29.83,
+    pnl: -0.17,
+    pnlPct: -0.57,
   },
   {
+    id: "eq-SOXL",
+    asset: "equity",
     symbol: "SOXL",
-    qty: 0.82567,
-    avgCost: 44.95,
-    mark: 54.14,
-    value: 44.7,
-    pnl: 7.59,
-    pnlPct: 20.45,
+    display: "SOXL",
+    qty: 1.032462,
+    avgCost: 47.57,
+    mark: 58.3499,
+    value: 60.24,
+    pnl: 11.13,
+    pnlPct: 22.66,
   },
   {
+    id: "eq-SCHD",
+    asset: "equity",
     symbol: "SCHD",
+    display: "SCHD",
     qty: 1,
     avgCost: 35.91,
-    mark: 35.94,
-    value: 35.94,
-    pnl: 0.03,
-    pnlPct: 0.08,
+    mark: 36.1,
+    value: 36.1,
+    pnl: 0.19,
+    pnlPct: 0.53,
   },
   {
+    id: "eq-NVDW",
+    asset: "equity",
     symbol: "NVDW",
+    display: "NVDW",
     qty: 1.041883,
     avgCost: 24,
-    mark: 22.84,
-    value: 23.8,
-    pnl: -1.21,
-    pnlPct: -4.84,
+    mark: 23.64,
+    value: 24.63,
+    pnl: -0.38,
+    pnlPct: -1.52,
+  },
+  {
+    id: "opt-95c8e1e1-0420-4127-8995-4f0c6d4d0951",
+    asset: "option",
+    symbol: "NVDA",
+    display: "NVDA 197.5c 11/20",
+    qty: 1,
+    avgCost: 0.52,
+    mark: 0.525,
+    value: 52.5,
+    pnl: 0.5,
+    pnlPct: 0.96,
+    optionRight: "Call",
+    optionStrike: 197.5,
+    optionExpiry: "2026-11-20",
+    optionId: "95c8e1e1-0420-4127-8995-4f0c6d4d0951",
+  },
+  {
+    id: "opt-c2082508-38f6-4fb5-b9c3-57af4f98a017",
+    asset: "option",
+    symbol: "SOXL",
+    display: "SOXL 80c 11/20",
+    qty: 1,
+    avgCost: 0.57,
+    mark: 0.51,
+    value: 51,
+    pnl: -6,
+    pnlPct: -10.53,
+    optionRight: "Call",
+    optionStrike: 80,
+    optionExpiry: "2026-11-20",
+    optionId: "c2082508-38f6-4fb5-b9c3-57af4f98a017",
   },
 ]
 
@@ -147,9 +198,9 @@ export const OPTIONS_HEAT_STUB = [
 ]
 
 export const NEWS_CRAWL = [
-  "RH · MCP ••••0788 equity $119.07 · options $0 · cash/BP $256.55",
-  "Book sync · as of 2026-11-13T16:25:50Z · option sold · open options cleared",
-  "SOXL qty 0.8257 still open · equities unchanged",
-  "Feed · /api/book needs BOOK_INGEST_SECRET + CURSOR_APP_TOKEN for auto push",
+  "RH · MCP ••••0788 equity $147.03 · options $104 · cash/BP $120.47",
+  "Book v2 · as of 2026-11-14T20:51:00Z · NVDA/SOXL calls open · crypto $0",
+  "Alert Watch · INTC price_below 62 unread fires · Stage only",
+  "Feed · npm run book-pusher after MCP reads · needs BOOK_INGEST_SECRET",
   "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place"
 ]

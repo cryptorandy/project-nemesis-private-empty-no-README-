@@ -54,6 +54,8 @@ function jitterPositions(
 ): MarketPosition[] {
   const bySym = Object.fromEntries(board.map((b) => [b.symbol, b.price]))
   return positions.map((p) => {
+    // Options / crypto keep baked marks — equity marks follow board quotes.
+    if (p.asset === 'option' || p.asset === 'crypto') return p
     const mark = bySym[p.symbol] ?? p.mark
     const value = mark * p.qty
     const cost = p.avgCost * p.qty

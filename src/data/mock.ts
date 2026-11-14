@@ -16,6 +16,7 @@ export const AGENTS: Agent[] = [
   { id: 'news', short: 'NEWS', name: 'News / Filings', status: 'scanning' },
   { id: 'book', short: 'BOOK', name: 'Portfolio Ops', status: 'briefing' },
   { id: 'exec', short: 'EXEC', name: 'Execution Prep', status: 'idle' },
+  { id: 'alrt', short: 'ALRT', name: 'Alert Watch', status: 'scanning' },
 ]
 
 export const WATCH = [...RH_BOARD, ...RH_CRYPTO]

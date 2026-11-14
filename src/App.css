@@ -865,7 +865,8 @@
   grid-template-areas:
     'quotes pos'
     'quotes crypto'
-    'opt swarm'
+    'opt alerts'
+    'swarm swarm'
     'activity activity';
   gap: 1px;
   background: var(--line);
@@ -897,8 +898,47 @@
   grid-area: opt;
 }
 
+.zone-alerts {
+  grid-area: alerts;
+}
+
 .zone-swarm {
   grid-area: swarm;
+}
+
+.alert-hit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.alert-hit {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+}
+
+.alert-hit.unread {
+  border-color: color-mix(in srgb, var(--amber, #f0a202) 55%, var(--line));
+}
+
+.alert-hit-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.alert-hit-detail {
+  margin: 0.35rem 0 0.4rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .zone-activity {
@@ -1521,6 +1561,7 @@
       'pos'
       'crypto'
       'opt'
+      'alerts'
       'swarm'
       'activity';
   }

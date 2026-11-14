@@ -1,54 +1,99 @@
+[run-book-pusher] built schema v2 asOf=2026-11-14T20:51:00Z rows eq=4 opt=2 cry=0
 {
-  "schemaVersion": 1,
-  "asOf": "2026-11-13T16:25:50Z",
-  "refreshedBy": "agent-mcp",
+  "schemaVersion": 2,
+  "asOf": "2026-11-14T20:51:00Z",
+  "refreshedBy": "agent-mcp-book-pusher",
   "accountMasked": "••••0788",
-  "sourceNote": "RH MCP book · prefer over market.json for positions/portfolio",
+  "sourceNote": "RH MCP live book · equity+option · schema v2 · desk polls /api/book ~30s",
   "degraded": false,
   "portfolio": {
-    "totalValue": 375.62,
-    "equityValue": 119.07,
-    "optionsValue": 0,
-    "cash": 256.55,
-    "buyingPower": 256.55,
+    "totalValue": 371.5,
+    "equityValue": 147.03,
+    "optionsValue": 104,
+    "cash": 120.47,
+    "buyingPower": 120.47,
     "accountMasked": "••••0788"
   },
   "positions": [
     {
+      "id": "eq-NVDA",
+      "asset": "equity",
       "symbol": "NVDA",
-      "qty": 0.090997,
-      "avgCost": 164.84,
-      "mark": 159.765,
-      "value": 14.54,
-      "pnl": -0.46,
-      "pnlPct": -3.07
+      "display": "NVDA",
+      "qty": 0.183191,
+      "avgCost": 163.76,
+      "mark": 162.8201,
+      "value": 29.83,
+      "pnl": -0.17,
+      "pnlPct": -0.57
     },
     {
+      "id": "eq-SOXL",
+      "asset": "equity",
       "symbol": "SOXL",
-      "qty": 0.82567,
-      "avgCost": 44.95,
-      "mark": 54.14,
-      "value": 44.7,
-      "pnl": 7.59,
-      "pnlPct": 20.45
+      "display": "SOXL",
+      "qty": 1.032462,
+      "avgCost": 47.57,
+      "mark": 58.3499,
+      "value": 60.24,
+      "pnl": 11.13,
+      "pnlPct": 22.66
     },
     {
+      "id": "eq-SCHD",
+      "asset": "equity",
       "symbol": "SCHD",
+      "display": "SCHD",
       "qty": 1,
       "avgCost": 35.91,
-      "mark": 35.94,
-      "value": 35.94,
-      "pnl": 0.03,
-      "pnlPct": 0.08
+      "mark": 36.1,
+      "value": 36.1,
+      "pnl": 0.19,
+      "pnlPct": 0.53
     },
     {
+      "id": "eq-NVDW",
+      "asset": "equity",
       "symbol": "NVDW",
+      "display": "NVDW",
       "qty": 1.041883,
       "avgCost": 24,
-      "mark": 22.84,
-      "value": 23.8,
-      "pnl": -1.21,
-      "pnlPct": -4.84
+      "mark": 23.64,
+      "value": 24.63,
+      "pnl": -0.38,
+      "pnlPct": -1.52
+    },
+    {
+      "id": "opt-95c8e1e1-0420-4127-8995-4f0c6d4d0951",
+      "asset": "option",
+      "symbol": "NVDA",
+      "display": "NVDA 197.5c 11/20",
+      "qty": 1,
+      "avgCost": 0.52,
+      "mark": 0.525,
+      "value": 52.5,
+      "pnl": 0.5,
+      "pnlPct": 0.96,
+      "optionRight": "Call",
+      "optionStrike": 197.5,
+      "optionExpiry": "2026-11-20",
+      "optionId": "95c8e1e1-0420-4127-8995-4f0c6d4d0951"
+    },
+    {
+      "id": "opt-c2082508-38f6-4fb5-b9c3-57af4f98a017",
+      "asset": "option",
+      "symbol": "SOXL",
+      "display": "SOXL 80c 11/20",
+      "qty": 1,
+      "avgCost": 0.57,
+      "mark": 0.51,
+      "value": 51,
+      "pnl": -6,
+      "pnlPct": -10.53,
+      "optionRight": "Call",
+      "optionStrike": 80,
+      "optionExpiry": "2026-11-20",
+      "optionId": "c2082508-38f6-4fb5-b9c3-57af4f98a017"
     }
   ]
 }

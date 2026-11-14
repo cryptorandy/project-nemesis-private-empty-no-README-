@@ -8,14 +8,23 @@ import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import pg from 'pg'
 
+export type BookPositionAsset = 'equity' | 'option' | 'crypto'
+
 export type BookPosition = {
+  id?: string
+  asset?: BookPositionAsset
   symbol: string
+  display?: string
   qty: number
   avgCost: number
   mark: number
   value: number
   pnl: number
   pnlPct: number
+  optionRight?: 'Call' | 'Put'
+  optionStrike?: number
+  optionExpiry?: string
+  optionId?: string
 }
 
 export type BookPortfolio = {
@@ -65,15 +74,40 @@ function scrubBook(raw: LiveBook): LiveBook {
       buyingPower: Number(raw.portfolio.buyingPower) || 0,
       accountMasked,
     },
-    positions: (raw.positions ?? []).map((p) => ({
-      symbol: String(p.symbol),
-      qty: Number(p.qty) || 0,
-      avgCost: Number(p.avgCost) || 0,
-      mark: Number(p.mark) || 0,
-      value: Number(p.value) || 0,
-      pnl: Number(p.pnl) || 0,
-      pnlPct: Number(p.pnlPct) || 0,
-    })),
+    positions: (raw.positions ?? []).map((p) => {
+      const assetRaw = String(p.asset ?? 'equity').toLowerCase()
+      const asset: BookPositionAsset =
+        assetRaw === 'option' || assetRaw === 'crypto' ? assetRaw : 'equity'
+      const rightRaw = p.optionRight ? String(p.optionRight) : ''
+      const optionRight =
+        rightRaw === 'Call' || rightRaw === 'Put'
+          ? rightRaw
+          : rightRaw.toLowerCase().startsWith('p')
+            ? ('Put' as const)
+            : rightRaw.toLowerCase().startsWith('c')
+              ? ('Call' as const)
+              : undefined
+      return {
+        id: p.id != null ? String(p.id) : undefined,
+        asset,
+        symbol: String(p.symbol),
+        display: p.display != null ? String(p.display) : undefined,
+        qty: Number(p.qty) || 0,
+        avgCost: Number(p.avgCost) || 0,
+        mark: Number(p.mark) || 0,
+        value: Number(p.value) || 0,
+        pnl: Number(p.pnl) || 0,
+        pnlPct: Number(p.pnlPct) || 0,
+        optionRight,
+        optionStrike:
+          p.optionStrike != null && Number.isFinite(Number(p.optionStrike))
+            ? Number(p.optionStrike)
+            : undefined,
+        optionExpiry:
+          p.optionExpiry != null ? String(p.optionExpiry) : undefined,
+        optionId: p.optionId != null ? String(p.optionId) : undefined,
+      }
+    }),
   }
 }
 

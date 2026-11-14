@@ -85,6 +85,14 @@ export const AGENT_ROSTER: AgentMeta[] = [
     offsetMs: 5200,
     workStatus: 'briefing',
   },
+  {
+    id: 'alrt',
+    short: 'ALRT',
+    name: 'Alert Watch',
+    intervalMs: 11500,
+    offsetMs: 5800,
+    workStatus: 'scanning',
+  },
 ]
 
 export function metaById(id: AgentId): AgentMeta {

@@ -14,6 +14,7 @@ import type { OptionBuyIdea } from './optionsScanner'
 import type {
   AgentBrief,
   AgentId,
+  DeskAlertHit,
   DeskSwarmState,
   StagedTicket,
   SwarmMarketView,
@@ -38,6 +39,7 @@ const INITIAL: DeskSwarmState = {
   riskFlags: [],
   stagedTicket: null,
   optionIdeas: [],
+  alertHits: [],
   newsLine: `Swarm armed · RH agent context ${AGENT_CONTEXT_AS_OF} · no place path`,
   loopCount: 0,
 }
@@ -51,6 +53,8 @@ export type UseAgentSwarmArgs = {
   onStageTicket?: (ticket: StagedTicket) => void
   /** Called when Options Flow publishes ranked buy ideas (Greeks required). */
   onOptionIdeas?: (ideas: OptionBuyIdea[]) => void
+  /** Called when Alert Watch refreshes fired/configured alerts. */
+  onAlertHits?: (hits: DeskAlertHit[]) => void
   /** Audit crumbs for loop / stage events */
   onAudit?: (
     entity: string,
@@ -70,6 +74,7 @@ export function useAgentSwarm({
   positions,
   onStageTicket,
   onOptionIdeas,
+  onAlertHits,
   onAudit,
 }: UseAgentSwarmArgs) {
   const [state, setState] = useState<DeskSwarmState>(INITIAL)
@@ -84,13 +89,15 @@ export function useAgentSwarm({
   const loopRef = useRef<Partial<Record<AgentId, number>>>({})
   const stageCb = useRef(onStageTicket)
   const ideasCb = useRef(onOptionIdeas)
+  const alertsCb = useRef(onAlertHits)
   const auditCb = useRef(onAudit)
 
   useEffect(() => {
     stageCb.current = onStageTicket
     ideasCb.current = onOptionIdeas
+    alertsCb.current = onAlertHits
     auditCb.current = onAudit
-  }, [onStageTicket, onOptionIdeas, onAudit])
+  }, [onStageTicket, onOptionIdeas, onAlertHits, onAudit])
 
   useEffect(() => {
     const bookPnl = positions.reduce((s, p) => s + p.pnl, 0)
@@ -153,9 +160,19 @@ export function useAgentSwarm({
         if (result.optionIdeas) {
           ideasCb.current?.(result.optionIdeas)
         }
+        if (result.alertHits) {
+          alertsCb.current?.(result.alertHits)
+        }
 
         const auditAction =
-          id === 'risk' ? 'risk' : id === 'scan' || id === 'flow' || id === 'cryp' ? 'scan' : 'brief'
+          id === 'risk'
+            ? 'risk'
+            : id === 'scan' ||
+                id === 'flow' ||
+                id === 'cryp' ||
+                id === 'alrt'
+              ? 'scan'
+              : 'brief'
         auditCb.current?.(
           meta.name,
           auditAction,
@@ -186,6 +203,7 @@ export function useAgentSwarm({
             riskFlags: result.riskFlags ?? prev.riskFlags,
             stagedTicket: result.stagedTicket ?? prev.stagedTicket,
             optionIdeas: result.optionIdeas ?? prev.optionIdeas,
+            alertHits: result.alertHits ?? prev.alertHits,
             newsLine: `${meta.short} · ${result.thought}`,
             loopCount: prev.loopCount + 1,
           }
@@ -215,6 +233,7 @@ export function useAgentSwarm({
     riskFlags: state.riskFlags,
     stagedTicket: state.stagedTicket,
     optionIdeas: state.optionIdeas,
+    alertHits: state.alertHits,
     newsLine: state.newsLine,
     loopCount: state.loopCount,
     clock: nowTime(),
