@@ -26,6 +26,12 @@ import { appendAudit, sealAudit } from './lib/auditLog'
 import { placeAfterConfirm } from './lib/placeOrder'
 import { runRiskSoftChecks } from './lib/riskChecks'
 import {
+  enqueueConfirmedPlace,
+  formatBridgeAgentBrief,
+  reviewNoteFromPayload,
+  softReviewTicket,
+} from './lib/rhBridge'
+import {
   toRhCryptoParams,
   toRhEquityParams,
   toRhOptionParams,
@@ -417,20 +423,26 @@ function App() {
         : ''
     const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits} ${ticket.asset} ${ticket.order} ${px} TIF ${ticket.tif}`
 
-    let reviewNote = 'Local review · RH MCP review_* on agent bridge'
+    const review = softReviewTicket(
+      ticket,
+      liveMark ?? report.mark,
+      live.portfolio.buyingPower,
+    )
+    let shaped = reviewNoteFromPayload(review)
     if (ticket.asset === 'Equity') {
       const p = toRhEquityParams(ticket)
-      reviewNote = `RH-shaped equity · ${p.side} ${p.quantity} ${p.symbol} ${p.type}`
+      shaped = `${shaped} · ${p.side} ${p.quantity} ${p.symbol} ${p.type}`
     } else if (ticket.asset === 'Option') {
       const p = toRhOptionParams(ticket)
-      reviewNote =
+      shaped =
         'error' in p
-          ? p.error
-          : `RH-shaped option · ${p.quantity}× ${p.legs[0]?.option_id.slice(0, 8)}…`
+          ? `${shaped} · ${p.error}`
+          : `${shaped} · ${p.quantity}× ${p.legs[0]?.option_id.slice(0, 8)}…`
     } else if (ticket.asset === 'Crypto') {
       const p = toRhCryptoParams(ticket)
-      reviewNote = `RH-shaped crypto · ${p.side} ${p.quantity} ${p.symbol} ${p.type}`
+      shaped = `${shaped} · ${p.side} ${p.quantity} ${p.symbol} ${p.type}`
     }
+    const reviewNote = shaped
 
     const nextPreview: TicketPreview = {
       id,
@@ -440,6 +452,12 @@ function App() {
       summary,
       mode: 'rh-review',
       reviewNote,
+      reviewPayload: {
+        tool: review.tool,
+        alerts: review.alerts,
+        quote: review.quote,
+        asOf: review.asOf,
+      },
     }
     setPreview(nextPreview)
     setPhase('previewed')
@@ -466,17 +484,44 @@ function App() {
       pushAudit('Execution Prep', 'rules-block', result.reason)
       return
     }
+    const review =
+      preview.reviewPayload != null
+        ? softReviewTicket(
+            ticket,
+            preview.mark,
+            live.portfolio.buyingPower,
+          )
+        : softReviewTicket(
+            ticket,
+            liveMark ?? preview.mark,
+            live.portfolio.buyingPower,
+          )
+    if (result.rhParams) {
+      const intent = enqueueConfirmedPlace({
+        preview,
+        ticket,
+        review,
+        orderId: result.orderId,
+        agentHint: result.agentHint,
+        rhParams: result.rhParams,
+      })
+      pushAudit(
+        'RH Bridge',
+        'place-live-intent',
+        formatBridgeAgentBrief(intent),
+      )
+    }
     setPhase('confirmed')
     setGateOpen(false)
     pushAudit(
       'Randy',
       result.mode === 'live-intent' ? 'confirm-live' : 'confirm-mock',
-      `Human confirmed ${preview.id} · ${result.summary}${hotSeat ? ' · hot seat' : ''}`,
+      `Human confirmed ${preview.id} · deskConfirmed=true · ${result.summary}${hotSeat ? ' · hot seat' : ''}`,
     )
     pushAudit(
       'Execution Prep',
       result.mode === 'live-intent' ? 'place-live-intent' : 'place-mock',
-      `${result.orderId} · ${result.note}`,
+      `${result.orderId} · ${result.note} · agents place_* only after this confirm`,
     )
   }
 

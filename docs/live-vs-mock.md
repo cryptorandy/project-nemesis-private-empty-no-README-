@@ -101,9 +101,9 @@ Specialists (Chief → Alert → Scanner → Depth → Exec) run **real timed lo
 
 ## Still mock / stub
 
-- Ticket preview / confirm / place (mock or live-intent only — **never** calls place-order from the browser)
-- ~~Crypto ticket fields (stub)~~ → crypto armed on confirm ritual (live-intent)
-- Size / % capital soft-checks are advisory vs live book (human ack on warn/block)
+- Ticket preview / confirm / place: soft RH `review_*` in browser + live-intent queue after Confirm (**never** unsupervised place from the UI)
+- Agents run live `review_*` / `place_*` only when bridge intent has `deskConfirmed=true`
+- Size / % capital soft-checks + soft review BLOCK hard-stop Confirm; kill switch still locks place
 
 ## Pro execution UX (layer 3)
 
