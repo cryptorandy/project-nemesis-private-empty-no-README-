@@ -64,20 +64,20 @@ export const OPTION_POSITIONS: OptionPosBrief[] = [
   {
     underlying: 'NVDA',
     side: 'call',
-    strike: 202.5,
-    expiry: '2026-11-18',
-    qty: 1,
-    avgPremium: 0.49,
-    notionalApprox: 49,
-  },
-  {
-    underlying: 'SOXL',
-    side: 'call',
-    strike: 95,
+    strike: 197.5,
     expiry: '2026-11-20',
     qty: 1,
     avgPremium: 0.52,
     notionalApprox: 52,
+  },
+  {
+    underlying: 'SOXL',
+    side: 'call',
+    strike: 80,
+    expiry: '2026-11-20',
+    qty: 1,
+    avgPremium: 0.57,
+    notionalApprox: 57,
   },
 ]
 

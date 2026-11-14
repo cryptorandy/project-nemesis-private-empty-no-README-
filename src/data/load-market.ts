@@ -165,7 +165,10 @@ export function parseBookSnapshot(raw: unknown): BookSnapshot | null {
       buyingPower: Number(portfolio.buyingPower) || 0,
       accountMasked: String(portfolio.accountMasked ?? '••••'),
     },
-    positions: o.positions as BookSnapshot['positions'],
+    positions: (o.positions as BookSnapshot['positions']).map((p) => ({
+      ...p,
+      asset: p.asset === 'option' || p.asset === 'crypto' ? p.asset : 'equity',
+    })),
   }
 }
 

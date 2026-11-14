@@ -1047,6 +1047,31 @@
   border-bottom: 1px solid var(--line);
 }
 
+.asset-chip {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 50%, transparent);
+  color: var(--muted);
+}
+
+.asset-chip.asset-option {
+  color: var(--amber, #e8b86d);
+  border-color: color-mix(in srgb, var(--amber, #e8b86d) 45%, transparent);
+}
+
+.asset-chip.asset-crypto {
+  color: var(--cyan);
+  border-color: color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+
+.pos-empty-crypto td {
+  font-size: 0.72rem;
+  padding-top: 0.45rem;
+}
+
 .linkish {
   background: none;
   border: none;

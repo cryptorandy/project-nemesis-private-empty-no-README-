@@ -8,6 +8,8 @@ import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import pg from 'pg'
 
+export type BookAssetClass = 'equity' | 'option' | 'crypto'
+
 export type BookPosition = {
   symbol: string
   qty: number
@@ -16,6 +18,13 @@ export type BookPosition = {
   value: number
   pnl: number
   pnlPct: number
+  asset?: BookAssetClass
+  right?: 'Call' | 'Put'
+  strike?: number
+  expiry?: string
+  optionId?: string
+  label?: string
+  pair?: string
 }
 
 export type BookPortfolio = {
@@ -51,7 +60,7 @@ function scrubBook(raw: LiveBook): LiveBook {
       ? raw.accountMasked
       : MASK
   return {
-    schemaVersion: 1,
+    schemaVersion: Number(raw.schemaVersion) >= 2 ? Number(raw.schemaVersion) : 2,
     asOf: raw.asOf,
     refreshedBy: raw.refreshedBy,
     accountMasked,
@@ -65,16 +74,35 @@ function scrubBook(raw: LiveBook): LiveBook {
       buyingPower: Number(raw.portfolio.buyingPower) || 0,
       accountMasked,
     },
-    positions: (raw.positions ?? []).map((p) => ({
-      symbol: String(p.symbol),
-      qty: Number(p.qty) || 0,
-      avgCost: Number(p.avgCost) || 0,
-      mark: Number(p.mark) || 0,
-      value: Number(p.value) || 0,
-      pnl: Number(p.pnl) || 0,
-      pnlPct: Number(p.pnlPct) || 0,
-    })),
+    positions: (raw.positions ?? []).map((p) => scrubPosition(p)),
   }
+}
+
+function scrubPosition(p: BookPosition): BookPosition {
+  const asset: BookAssetClass =
+    p.asset === 'option' || p.asset === 'crypto' ? p.asset : 'equity'
+  const out: BookPosition = {
+    symbol: String(p.symbol),
+    qty: Number(p.qty) || 0,
+    avgCost: Number(p.avgCost) || 0,
+    mark: Number(p.mark) || 0,
+    value: Number(p.value) || 0,
+    pnl: Number(p.pnl) || 0,
+    pnlPct: Number(p.pnlPct) || 0,
+    asset,
+  }
+  if (asset === 'option') {
+    if (p.right === 'Call' || p.right === 'Put') out.right = p.right
+    if (p.strike != null && Number.isFinite(Number(p.strike))) {
+      out.strike = Number(p.strike)
+    }
+    if (typeof p.expiry === 'string') out.expiry = p.expiry
+    if (typeof p.optionId === 'string') out.optionId = p.optionId
+    if (typeof p.label === 'string') out.label = p.label
+  }
+  if (asset === 'crypto' && typeof p.pair === 'string') out.pair = p.pair
+  if (typeof p.label === 'string' && !out.label) out.label = p.label
+  return out
 }
 
 function looksLikeBook(raw: unknown): raw is LiveBook {

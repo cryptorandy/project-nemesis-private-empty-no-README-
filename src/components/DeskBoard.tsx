@@ -225,18 +225,19 @@ export function DeskBoard({
           </div>
         </div>
 
-        {/* Positions */}
+        {/* Positions — equity + option + crypto from live book */}
         <div className="zone zone-pos">
           <header className="zone-head">
             <h2>Positions</h2>
             <span className="zone-tag" title={sourceNote}>
-              MCP book · {asOfShort} · {feedLabel(feedStatus)}
+              MCP book · eq/opt/crypto · {asOfShort} · {feedLabel(feedStatus)}
             </span>
           </header>
           <table className="pos-table">
             <thead>
               <tr>
                 <th>Sym</th>
+                <th>Asset</th>
                 <th>Qty</th>
                 <th>Mark</th>
                 <th>Value</th>
@@ -244,32 +245,67 @@ export function DeskBoard({
               </tr>
             </thead>
             <tbody>
-              {positions.map((p) => (
-                <tr key={p.symbol}>
-                  <td>
-                    <button
-                      type="button"
-                      className="linkish"
-                      onClick={() => onPickSymbol(p.symbol)}
+              {positions.map((p) => {
+                const asset = p.asset ?? 'equity'
+                const rowKey =
+                  asset === 'option'
+                    ? p.optionId || p.label || `${p.symbol}-opt`
+                    : asset === 'crypto'
+                      ? p.pair || p.symbol
+                      : p.symbol
+                const display = p.label || p.symbol
+                return (
+                  <tr key={rowKey} className={`pos-asset-${asset}`}>
+                    <td>
+                      <button
+                        type="button"
+                        className="linkish"
+                        onClick={() => onPickSymbol(p.symbol)}
+                        title={
+                          asset === 'option'
+                            ? `${display} · ${p.optionId?.slice(0, 8) ?? ''}`
+                            : display
+                        }
+                      >
+                        {display}
+                      </button>
+                    </td>
+                    <td>
+                      <span className={`asset-chip asset-${asset}`}>
+                        {asset === 'option'
+                          ? 'OPT'
+                          : asset === 'crypto'
+                            ? 'CRYP'
+                            : 'EQ'}
+                      </span>
+                    </td>
+                    <td>
+                      {Number.isInteger(p.qty)
+                        ? String(p.qty)
+                        : p.qty.toFixed(4)}
+                    </td>
+                    <td
+                      className={
+                        flashKeys[p.symbol] ? 'flash-td' : undefined
+                      }
                     >
-                      {p.symbol}
-                    </button>
-                  </td>
-                  <td>
-                    {Number.isInteger(p.qty) ? String(p.qty) : p.qty.toFixed(4)}
-                  </td>
-                  <td
-                    className={flashKeys[p.symbol] ? 'flash-td' : undefined}
-                  >
-                    {formatMoney(p.mark)}
-                  </td>
-                  <td>{formatMoney(p.value)}</td>
-                  <td className={p.pnl >= 0 ? 'up' : 'down'}>
-                    {formatMoney(p.pnl)}{' '}
-                    <span className="dim">{formatPct(p.pnlPct)}</span>
+                      {formatMoney(p.mark)}
+                    </td>
+                    <td>{formatMoney(p.value)}</td>
+                    <td className={p.pnl >= 0 ? 'up' : 'down'}>
+                      {formatMoney(p.pnl)}{' '}
+                      <span className="dim">{formatPct(p.pnlPct)}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+              {positions.every((p) => (p.asset ?? 'equity') !== 'crypto') && (
+                <tr className="pos-empty-crypto">
+                  <td colSpan={6} className="dim">
+                    No open crypto holdings on MCP book
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -67,6 +67,8 @@ Agents can still write `public/data/market.json` + `public/data/book.json` via `
 - Crypto marks: BTC-USD, ETH-USD
 - Portfolio snapshot for MCP account ••••0788: total / equity / options / cash / buying power
 - Equity positions: NVDA, SOXL, SCHD, NVDW (qty, avg cost, mark-derived P&L)
+- Option positions in live book (`asset: option` + strike/expiry/right/optionId)
+- Crypto holdings in live book when open (`asset: crypto`); empty book shows none
 - Watchlist metadata (Superstar list id + symbols)
 - Option contracts with **delta / gamma / theta / vega / IV** from `get_option_quotes` (scanner bake)
 
