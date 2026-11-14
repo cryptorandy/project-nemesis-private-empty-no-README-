@@ -2603,6 +2603,31 @@
   }
 }
 
+.gate-review-alerts {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.gate-review-alerts li {
+  padding: 0.25rem 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.gate-review-alerts .sev-warn {
+  color: var(--amber, #e8b86d);
+}
+
+.gate-review-alerts .sev-block {
+  color: var(--down, #e07a7a);
+}
+
 .orders-strip {
   border-top: 1px solid var(--line);
   padding: 0.55rem 0.75rem 0.75rem;

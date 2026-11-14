@@ -34,7 +34,11 @@ export function ConfirmGate({
       ? ` ${ticket.optionRight ?? 'Call'} ${ticket.optionStrike ?? ''} ${ticket.optionExpiry ?? ''}`.trim()
       : ''
   const summary = `${ticket.side.toUpperCase()} ${ticket.qty} ${ticket.symbol}${optBits ? ` · ${optBits}` : ''}`
-  const hardBlocked = killed || !previewed || !preview || standingBlocked
+  const reviewBlocked = Boolean(
+    preview?.reviewPayload?.alerts?.some((a) => a.severity === 'block'),
+  )
+  const hardBlocked =
+    killed || !previewed || !preview || standingBlocked || reviewBlocked
   const softNeedsAck = risk.needsAck && !hotSeat
   const canConfirm =
     !hardBlocked &&
@@ -69,12 +73,24 @@ export function ConfirmGate({
           <div className="gate-preview">
             <div className="preview-kicker">
               Staged preview · {preview.id} · {preview.mode}
+              {preview.reviewPayload
+                ? ` · ${preview.reviewPayload.tool}`
+                : ''}
             </div>
             <div>{preview.summary}</div>
             <div className="preview-foot">
               Est. notional ${preview.notional.toFixed(2)} · TIF {ticket.tif}
               {preview.reviewNote ? ` · ${preview.reviewNote}` : ''}
             </div>
+            {preview.reviewPayload?.alerts?.length ? (
+              <ul className="gate-review-alerts">
+                {preview.reviewPayload.alerts.map((a) => (
+                  <li key={`${a.code}-${a.message}`} className={`sev-${a.severity}`}>
+                    <strong>{a.severity}</strong> {a.message}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         )}
 
@@ -87,6 +103,15 @@ export function ConfirmGate({
             <span className={`gate-pip ${standingBlocked ? 'off' : ''}`} />
             Standing rules{' '}
             {standingBlocked ? 'BLOCKED — outside % / allowlist' : 'clear'}
+          </li>
+          <li>
+            <span className={`gate-pip ${reviewBlocked ? 'off' : ''}`} />
+            RH soft review{' '}
+            {reviewBlocked
+              ? 'BLOCKED — fix size / BP before confirm'
+              : preview?.reviewPayload
+                ? `${preview.reviewPayload.tool} clear`
+                : 'pending preview'}
           </li>
           <li>
             <span

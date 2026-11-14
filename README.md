@@ -64,7 +64,7 @@ node scripts/refresh-market.mjs
 
 ## Safety
 
-Orders are **never** placed without explicit ConfirmGate confirm (hot seat = one tap, still per-order). Standing % rules hard-block outside caps. Options ideas stage only — Randy confirms. Hosted app cannot call Robinhood MCP at runtime — confirm queues RH-shaped live-intent for agent `review_*` / `place_*` on MCP ••••0788 (account number resolved by agents, masked in UI). Agents never auto-place. Keep the published app **private**.
+Orders are **never** placed without explicit ConfirmGate confirm (hot seat = one tap, still per-order). Standing % rules + soft RH review BLOCK hard-stop Confirm. Kill switch locks place. Preview shows RH-shaped `review_*` / `preview_crypto_order` output; Confirm enqueues a bridge intent with `deskConfirmed=true` for agents to run live `review_*` then `place_*` only — never unsupervised. Keep the published app **private**.
 
 ## Repo note
 

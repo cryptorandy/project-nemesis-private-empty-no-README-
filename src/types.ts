@@ -78,6 +78,13 @@ export type TicketPreview = {
   mode: 'mock' | 'rh-review'
   /** Soft RH review note (browser-local or agent-bridged). */
   reviewNote?: string
+  /** Structured soft review_* payload for ConfirmGate display. */
+  reviewPayload?: {
+    tool: string
+    alerts: { code: string; severity: string; message: string }[]
+    quote: { symbol: string; mark: number }
+    asOf: string
+  }
 }
 
 export type AuditAction =
