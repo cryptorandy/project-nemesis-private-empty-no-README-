@@ -52,9 +52,16 @@ function jitterQuote(row: QuoteRow, salt: number): QuoteRow {
 function jitterPositions(
   positions: MarketPosition[],
   board: QuoteRow[],
+  crypto: QuoteRow[],
 ): MarketPosition[] {
-  const bySym = Object.fromEntries(board.map((b) => [b.symbol, b.price]))
+  const bySym = Object.fromEntries([
+    ...board.map((b) => [b.symbol, b.price] as const),
+    ...crypto.map((b) => [b.symbol, b.price] as const),
+  ])
   return positions.map((p) => {
+    const asset = p.asset ?? 'equity'
+    // Options marks come from option quotes — don't retarget from equity board.
+    if (asset === 'option') return p
     const mark = bySym[p.symbol] ?? p.mark
     const value = mark * p.qty
     const cost = p.avgCost * p.qty
@@ -221,7 +228,7 @@ export function useLiveDesk(killed: boolean) {
 
     const flashes: Record<string, number> = {}
 
-    setBoard((prev) => {
+      setBoard((prev) => {
       const next = prev.map((row, i) => {
         const j = jitterQuote(row, tick + i)
         if (Math.abs(j.price - row.price) > 0.0001) {
@@ -229,21 +236,21 @@ export function useLiveDesk(killed: boolean) {
         }
         return j
       })
-      setPositions((pos) => jitterPositions(pos, next))
+      setCrypto((cryptoPrev) => {
+        const nextCrypto = cryptoPrev.map((row, i) => {
+          const j = jitterQuote(row, tick * 1.7 + i + 9)
+          flashes[row.symbol] = Date.now()
+          return j
+        })
+        setPositions((pos) => jitterPositions(pos, next, nextCrypto))
+        return nextCrypto
+      })
       return next
     })
 
     setIndices((prev) =>
       prev.map((row, i) => {
         const j = jitterQuote(row, tick * 1.3 + i)
-        flashes[row.symbol] = Date.now()
-        return j
-      }),
-    )
-
-    setCrypto((prev) =>
-      prev.map((row, i) => {
-        const j = jitterQuote(row, tick * 1.7 + i + 9)
         flashes[row.symbol] = Date.now()
         return j
       }),

@@ -30,6 +30,13 @@ export type RhPosition = {
   value: number
   pnl: number
   pnlPct: number
+  asset?: 'equity' | 'option' | 'crypto'
+  right?: 'Call' | 'Put'
+  strike?: number
+  expiry?: string
+  optionId?: string
+  label?: string
+  pair?: string
 }
 
 export type RhPortfolio = {
@@ -41,15 +48,15 @@ export type RhPortfolio = {
   accountMasked: string
 }
 
-export const RH_AS_OF = "2026-11-13T16:25:50Z"
-export const RH_SOURCE_NOTE = "RH MCP bake · option sold · cash/BP $256.55 · options $0 · desk still needs ingest secret for auto-refresh"
+export const RH_AS_OF = "2026-11-14T16:25:00Z"
+export const RH_SOURCE_NOTE = "RH MCP bake · equity+option book · options $104 · Refresh ping / ingest for live"
 
 export const RH_PORTFOLIO: RhPortfolio = {
-  "totalValue": 375.62,
-  "equityValue": 119.07,
-  "optionsValue": 0,
-  "cash": 256.55,
-  "buyingPower": 256.55,
+  "totalValue": 371.5,
+  "equityValue": 147.03,
+  "optionsValue": 104,
+  "cash": 120.47,
+  "buyingPower": 120.47,
   "accountMasked": "••••0788"
 }
 
@@ -86,39 +93,73 @@ export const RH_CRYPTO: RhQuote[] = [
 export const RH_POSITIONS: RhPosition[] = [
   {
     symbol: "NVDA",
-    qty: 0.090997,
-    avgCost: 164.84,
-    mark: 159.765,
-    value: 14.54,
-    pnl: -0.46,
-    pnlPct: -3.07,
+    qty: 0.183191,
+    avgCost: 163.76,
+    mark: 162.8201,
+    value: 29.83,
+    pnl: -0.17,
+    pnlPct: -0.57,
+    asset: 'equity',
   },
   {
     symbol: "SOXL",
-    qty: 0.82567,
-    avgCost: 44.95,
-    mark: 54.14,
-    value: 44.7,
-    pnl: 7.59,
-    pnlPct: 20.45,
+    qty: 1.032462,
+    avgCost: 47.57,
+    mark: 58.3499,
+    value: 60.24,
+    pnl: 11.13,
+    pnlPct: 22.66,
+    asset: 'equity',
   },
   {
     symbol: "SCHD",
     qty: 1,
     avgCost: 35.91,
-    mark: 35.94,
-    value: 35.94,
-    pnl: 0.03,
-    pnlPct: 0.08,
+    mark: 36.1,
+    value: 36.1,
+    pnl: 0.19,
+    pnlPct: 0.53,
+    asset: 'equity',
   },
   {
     symbol: "NVDW",
     qty: 1.041883,
     avgCost: 24,
-    mark: 22.84,
-    value: 23.8,
-    pnl: -1.21,
-    pnlPct: -4.84,
+    mark: 23.64,
+    value: 24.63,
+    pnl: -0.37,
+    pnlPct: -1.5,
+    asset: 'equity',
+  },
+  {
+    symbol: "NVDA",
+    qty: 1,
+    avgCost: 0.52,
+    mark: 0.53,
+    value: 53,
+    pnl: 1,
+    pnlPct: 1.92,
+    asset: 'option',
+    right: 'Call',
+    strike: 197.5,
+    expiry: '2026-11-20',
+    optionId: '95c8e1e1-0420-4127-8995-4f0c6d4d0951',
+    label: 'NVDA 197.5C 11/20',
+  },
+  {
+    symbol: "SOXL",
+    qty: 1,
+    avgCost: 0.57,
+    mark: 0.51,
+    value: 51,
+    pnl: -6,
+    pnlPct: -10.53,
+    asset: 'option',
+    right: 'Call',
+    strike: 80,
+    expiry: '2026-11-20',
+    optionId: 'c2082508-38f6-4fb5-b9c3-57af4f98a017',
+    label: 'SOXL 80C 11/20',
   },
 ]
 
@@ -147,9 +188,9 @@ export const OPTIONS_HEAT_STUB = [
 ]
 
 export const NEWS_CRAWL = [
-  "RH · MCP ••••0788 equity $119.07 · options $0 · cash/BP $256.55",
-  "Book sync · as of 2026-11-13T16:25:50Z · option sold · open options cleared",
-  "SOXL qty 0.8257 still open · equities unchanged",
-  "Feed · /api/book needs BOOK_INGEST_SECRET + CURSOR_APP_TOKEN for auto push",
+  "RH · MCP ••••0788 equity $147 · options $104 · cash/BP $120.47",
+  "Book · NVDA 197.5C + SOXL 80C open · no crypto holdings",
+  "SOXL equity qty 1.03 · NVDA equity 0.18",
+  "Feed · Refresh ping or BOOK_INGEST_SECRET for continuous push",
   "Risk Guard · standing 10% BP / 5% day loss · watchlist_only · no auto-place"
 ]

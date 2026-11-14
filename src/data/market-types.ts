@@ -10,6 +10,8 @@ export type MarketQuote = {
   note?: string
 }
 
+export type MarketAssetClass = 'equity' | 'option' | 'crypto'
+
 export type MarketPosition = {
   symbol: string
   qty: number
@@ -18,6 +20,17 @@ export type MarketPosition = {
   value: number
   pnl: number
   pnlPct: number
+  /** Defaults to equity when omitted (legacy bake). */
+  asset?: MarketAssetClass
+  /** Option contract fields (asset === 'option'). */
+  right?: 'Call' | 'Put'
+  strike?: number
+  expiry?: string
+  optionId?: string
+  /** Display label e.g. NVDA 197.5C 11/20 */
+  label?: string
+  /** Crypto pair id e.g. BTC-USD when asset === 'crypto'. */
+  pair?: string
 }
 
 export type MarketPortfolio = {

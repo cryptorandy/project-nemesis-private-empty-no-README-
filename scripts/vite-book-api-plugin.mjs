@@ -83,7 +83,7 @@ export function bookApiPlugin() {
               return
             }
             const book = {
-              schemaVersion: 1,
+              schemaVersion: Number(raw.schemaVersion) || 2,
               asOf: raw.asOf,
               refreshedBy: raw.refreshedBy ?? 'local-ingest',
               accountMasked: raw.accountMasked ?? '••••0788',

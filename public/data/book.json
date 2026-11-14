@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 1,
-  "asOf": "2026-11-14T16:20:00Z",
+  "schemaVersion": 2,
+  "asOf": "2026-11-14T16:25:00Z",
   "refreshedBy": "agent-mcp",
   "accountMasked": "••••0788",
-  "sourceNote": "RH MCP book · equity refresh · options $104 on account · desk Refresh ping keeps feed fresh until ingest secret is set",
+  "sourceNote": "RH MCP live book · equity+option+crypto · desk polls /api/book ~30s",
   "degraded": false,
   "portfolio": {
     "totalValue": 371.5,
@@ -21,7 +21,8 @@
       "mark": 162.8201,
       "value": 29.83,
       "pnl": -0.17,
-      "pnlPct": -0.57
+      "pnlPct": -0.57,
+      "asset": "equity"
     },
     {
       "symbol": "SOXL",
@@ -30,7 +31,8 @@
       "mark": 58.3499,
       "value": 60.24,
       "pnl": 11.13,
-      "pnlPct": 22.66
+      "pnlPct": 22.66,
+      "asset": "equity"
     },
     {
       "symbol": "SCHD",
@@ -39,7 +41,8 @@
       "mark": 36.1,
       "value": 36.1,
       "pnl": 0.19,
-      "pnlPct": 0.53
+      "pnlPct": 0.53,
+      "asset": "equity"
     },
     {
       "symbol": "NVDW",
@@ -47,8 +50,39 @@
       "avgCost": 24,
       "mark": 23.64,
       "value": 24.63,
-      "pnl": -0.37,
-      "pnlPct": -1.5
+      "pnl": -0.38,
+      "pnlPct": -1.52,
+      "asset": "equity"
+    },
+    {
+      "symbol": "NVDA",
+      "qty": 1,
+      "avgCost": 0.52,
+      "mark": 0.53,
+      "value": 53,
+      "pnl": 1,
+      "pnlPct": 1.92,
+      "asset": "option",
+      "right": "Call",
+      "strike": 197.5,
+      "expiry": "2026-11-20",
+      "optionId": "95c8e1e1-0420-4127-8995-4f0c6d4d0951",
+      "label": "NVDA 197.5C 11/20"
+    },
+    {
+      "symbol": "SOXL",
+      "qty": 1,
+      "avgCost": 0.57,
+      "mark": 0.51,
+      "value": 51,
+      "pnl": -6,
+      "pnlPct": -10.53,
+      "asset": "option",
+      "right": "Call",
+      "strike": 80,
+      "expiry": "2026-11-20",
+      "optionId": "c2082508-38f6-4fb5-b9c3-57af4f98a017",
+      "label": "SOXL 80C 11/20"
     }
   ]
 }
