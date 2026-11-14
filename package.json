@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "refresh-market": "node scripts/refresh-market.mjs",
     "push-live-book": "node scripts/push-live-book.mjs",
+    "book-pusher": "node scripts/book-pusher-loop.mjs",
+    "book-pusher:once": "node scripts/book-pusher-loop.mjs --once",
     "build-book": "node scripts/build-book-from-rh.mjs",
     "migrate": "node scripts/migrate.mjs"
   },

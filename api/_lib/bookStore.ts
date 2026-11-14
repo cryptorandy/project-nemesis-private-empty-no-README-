@@ -182,6 +182,30 @@ export function parseIngestBody(raw: unknown): LiveBook | null {
   return scrubBook(raw)
 }
 
+/**
+ * Refresh ping: re-stamp asOf on the current live/bake book without a full
+ * RH rebuild. Used when ingest secrets are not yet set so the desk feed does
+ * not go "stale" solely from clock age. Never places trades.
+ */
+export function isRefreshPing(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false
+  const o = raw as Record<string, unknown>
+  return o.refresh === true || o.mode === 'refresh'
+}
+
+export async function refreshLiveBook(refreshedBy?: string): Promise<LiveBook | null> {
+  const current = await readLiveBook()
+  if (!current) return null
+  return writeLiveBook({
+    ...current,
+    asOf: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    refreshedBy: refreshedBy?.trim() || 'refresh-ping',
+    sourceNote: current.sourceNote.includes('refresh ping')
+      ? current.sourceNote
+      : `${current.sourceNote} · refresh ping`,
+  })
+}
+
 export function ingestAuthorized(request: Request): boolean {
   const expected = process.env.BOOK_INGEST_SECRET?.trim() ?? ''
   if (!expected) return false

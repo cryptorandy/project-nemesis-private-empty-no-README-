@@ -28,6 +28,9 @@ type DeskBoardProps = {
   killed: boolean
   focusedAgent: string | null
   loopCount: number
+  refreshing?: boolean
+  /** Signed-in refresh ping — bumps book asOf; never places. */
+  onRefreshBook?: () => void
   onSelectAgent: (id: string) => void
   onPickSymbol: (symbol: string) => void
   /** One-tap stage into ticket rail — never places. */
@@ -77,6 +80,8 @@ export function DeskBoard({
   killed,
   focusedAgent,
   loopCount,
+  refreshing = false,
+  onRefreshBook,
   onSelectAgent,
   onPickSymbol,
   onStageIdea,
@@ -167,6 +172,20 @@ export function DeskBoard({
             {killed ? 'paused' : `${loopCount} loops`}
           </span>
         </div>
+        {onRefreshBook && (
+          <div className="pnl-cell">
+            <span className="pnl-label">Book</span>
+            <button
+              type="button"
+              className="book-refresh-btn"
+              disabled={refreshing || killed}
+              onClick={onRefreshBook}
+              title="Re-stamp live book asOf (signed-in refresh ping · no place)"
+            >
+              {refreshing ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+        )}
       </div>
 
       {deskBrief && (

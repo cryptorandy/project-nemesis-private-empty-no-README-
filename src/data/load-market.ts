@@ -199,6 +199,36 @@ export async function fetchBookSnapshot(
   return fetchBookFromUrl(BOOK_JSON_URL, signal)
 }
 
+/**
+ * Signed-in desk keep-alive: POST { refresh: true } to /api/book.
+ * Bumps asOf on the stored/bake book so feed stays fresh without agent secrets.
+ * Never places trades. Returns new asOf or null on failure.
+ */
+export async function pingBookRefresh(
+  signal?: AbortSignal,
+): Promise<{ asOf: string } | null> {
+  try {
+    const res = await fetch(LIVE_BOOK_API_URL, {
+      method: 'POST',
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refresh: true,
+        refreshedBy: 'desk-refresh',
+      }),
+      signal,
+    })
+    if (!res.ok) return null
+    const raw: unknown = await res.json()
+    if (!raw || typeof raw !== 'object') return null
+    const asOf = (raw as { asOf?: unknown }).asOf
+    return typeof asOf === 'string' ? { asOf } : null
+  } catch {
+    return null
+  }
+}
+
 /** Apply book over market when book asOf is equal or newer. */
 export function mergeBookIntoMarket(
   market: MarketSnapshot,

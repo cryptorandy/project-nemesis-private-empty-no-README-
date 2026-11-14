@@ -842,6 +842,29 @@
   font-weight: 500;
 }
 
+.book-refresh-btn {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cyan) 45%, transparent);
+  border-radius: 2px;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+}
+
+.book-refresh-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+
+.book-refresh-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .pnl-val.up,
 .chg.up,
 .up {

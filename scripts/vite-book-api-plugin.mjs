@@ -53,6 +53,30 @@ export function bookApiPlugin() {
           for await (const chunk of req) chunks.push(chunk)
           try {
             const raw = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+            if (raw?.refresh === true || raw?.mode === 'refresh') {
+              const current = loadBook()
+              if (!current) {
+                res.statusCode = 503
+                res.end(JSON.stringify({ error: 'book_unavailable' }))
+                return
+              }
+              const book = {
+                ...current,
+                asOf: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+                refreshedBy: raw.refreshedBy ?? 'local-refresh',
+                sourceNote: String(current.sourceNote || '').includes(
+                  'refresh ping',
+                )
+                  ? current.sourceNote
+                  : `${current.sourceNote || 'RH bake'} · refresh ping`,
+              }
+              saveBook(book)
+              res.statusCode = 200
+              res.end(
+                JSON.stringify({ ok: true, asOf: book.asOf, mode: 'refresh' }),
+              )
+              return
+            }
             if (!raw?.asOf || !raw?.portfolio || !Array.isArray(raw?.positions)) {
               res.statusCode = 400
               res.end(JSON.stringify({ error: 'invalid_book' }))

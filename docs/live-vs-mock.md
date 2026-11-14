@@ -26,14 +26,30 @@ Cursor-published apps **cannot call Robinhood MCP from the browser** (or from ap
 4. Desk (when open) polls **`/api/book` every ~30s** (focus/visibility re-poll too); falls back to `/data/book.json`
 5. Published host stores the latest book in **Postgres** (`live_book`); local Vite uses `.local/live-book.json`
 
+**Always-on pusher (agents):**
+
+```bash
+# After writing /tmp/rh-input.json from MCP:
+npm run book-pusher -- --mode live --input /tmp/rh-input.json --once
+# Continuous (default 60s):
+npm run book-pusher -- --mode live --input /tmp/rh-input.json
+```
+
+**Bake fallback (no agent secrets yet):**
+
+- Desk **Refresh** button (signed-in) → `POST /api/book` with `{ refresh: true }` — re-stamps `asOf` on the stored/bake book so feed status stays fresh without republish
+- Agent keep-alive: `npm run book-pusher -- --mode refresh --once` (same ping; needs secret or app token)
+
 Secrets (declare via bind-app-secrets / dashboard — never paste in chat):
 
-- `BOOK_INGEST_SECRET` — required for agent ingest
+- `BOOK_INGEST_SECRET` — required for unattended agent ingest
 - `CURSOR_APP_TOKEN` — personal Cursor API key so agents can reach the private app
+
+Until those values exist, Randy can keep the desk “fresh” with the in-app **Refresh** ping (signed-in). Agents still bake+republish when positions actually change.
 
 ### Static bake (still present)
 
-Agents can still write `public/data/market.json` + `public/data/book.json` via `scripts/refresh-market.mjs` for cold start / offline. That path alone is **not** enough for a live desk.
+Agents can still write `public/data/market.json` + `public/data/book.json` via `scripts/refresh-market.mjs` for cold start / offline. That path alone is **not** enough for a live desk — use Refresh ping or the pusher loop.
 
 ### What the UI does
 

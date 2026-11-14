@@ -6,6 +6,7 @@ import {
   fetchMarketSnapshot,
   formatAsOfShort,
   mergeBookIntoMarket,
+  pingBookRefresh,
 } from '../data/load-market'
 import type {
   FeedStatus,
@@ -111,6 +112,8 @@ export function useLiveDesk(killed: boolean) {
   const [newsIdx, setNewsIdx] = useState(0)
   const [clock, setClock] = useState(nowTime)
   const [tick, setTick] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const refreshCtrl = useRef<AbortController | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -255,6 +258,51 @@ export function useLiveDesk(killed: boolean) {
     }
   }, [tick, killed, newsCrawl.length])
 
+  async function refreshBook() {
+    if (refreshing) return false
+    setRefreshing(true)
+    refreshCtrl.current?.abort()
+    const ctrl = new AbortController()
+    refreshCtrl.current = ctrl
+    try {
+      const ping = await pingBookRefresh(ctrl.signal)
+      if (ping) {
+        const book = await fetchBookSnapshot(ctrl.signal)
+        if (book) {
+          const merged = mergeBookIntoMarket(marketRef.current, book)
+          asOfRef.current = merged.asOf
+          marketRef.current = merged
+          setAsOf(merged.asOf)
+          setSourceNote(merged.sourceNote)
+          setDegradedFlag(merged.degraded)
+          setPositions(merged.positions.map((p) => ({ ...p })))
+          setPortfolio({ ...merged.portfolio })
+          setPollOk(true)
+          setLastPollAt(Date.now())
+          return true
+        }
+      }
+      // Soft fallback: re-poll book/market so focus path still helps.
+      const book = await fetchBookSnapshot(ctrl.signal)
+      if (book) {
+        const merged = mergeBookIntoMarket(marketRef.current, book)
+        asOfRef.current = merged.asOf
+        marketRef.current = merged
+        setAsOf(merged.asOf)
+        setSourceNote(merged.sourceNote)
+        setDegradedFlag(merged.degraded)
+        setPositions(merged.positions.map((p) => ({ ...p })))
+        setPortfolio({ ...merged.portfolio })
+        setPollOk(true)
+        setLastPollAt(Date.now())
+        return true
+      }
+      return false
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const feedStatus = deriveFeedStatus(
     asOf,
     degradedFlag,
@@ -281,5 +329,7 @@ export function useLiveDesk(killed: boolean) {
     sourceNote,
     feedStatus,
     lastPollAt,
+    refreshing,
+    refreshBook,
   }
 }
