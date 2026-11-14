@@ -541,6 +541,10 @@ function App() {
             killed={killed}
             focusedAgent={focusedAgent}
             loopCount={swarm.loopCount}
+            refreshing={live.refreshing}
+            onRefreshBook={() => {
+              void live.refreshBook()
+            }}
             onSelectAgent={(id) =>
               setFocusedAgent((prev) => (prev === id ? null : id))
             }

@@ -10,8 +10,10 @@
 import { requireIdentity } from '../cursor/identity.js'
 import {
   ingestAuthorized,
+  isRefreshPing,
   parseIngestBody,
   readLiveBook,
+  refreshLiveBook,
   writeLiveBook,
 } from './_lib/bookStore.js'
 
@@ -63,6 +65,25 @@ export async function POST(request: Request): Promise<Response> {
       status: 400,
       headers: NO_STORE,
     })
+  }
+
+  // Soft keep-alive: bump asOf on existing book/bake (signed-in or secret).
+  if (isRefreshPing(raw)) {
+    const by =
+      raw && typeof raw === 'object' && 'refreshedBy' in raw
+        ? String((raw as { refreshedBy?: unknown }).refreshedBy ?? '')
+        : 'refresh-ping'
+    const saved = await refreshLiveBook(by)
+    if (!saved) {
+      return new Response(JSON.stringify({ error: 'book_unavailable' }), {
+        status: 503,
+        headers: NO_STORE,
+      })
+    }
+    return new Response(
+      JSON.stringify({ ok: true, asOf: saved.asOf, mode: 'refresh' }),
+      { status: 200, headers: NO_STORE },
+    )
   }
 
   const parsed = parseIngestBody(raw)

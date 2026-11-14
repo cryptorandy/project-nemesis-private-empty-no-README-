@@ -48,13 +48,14 @@ Fonts are self-hosted (no Google Fonts CDN) so first paint is not blocked on ext
 ## Live book refresh (agents — preferred)
 
 ```bash
-# 1) Pull RH MCP (get_portfolio / get_equity_positions / quotes) → build scrubbed book:
-node scripts/build-book-from-rh.mjs < /path/to/rh-input.json > /tmp/book.json
-# 2) Push to the private app (no human republish):
+# 1) Pull RH MCP → /tmp/rh-input.json, then always-on pusher:
+BOOK_INGEST_SECRET=… CURSOR_APP_TOKEN=… \
+  npm run book-pusher -- --mode live --input /tmp/rh-input.json
+# One-shot built book:
 BOOK_INGEST_SECRET=… CURSOR_APP_TOKEN=… npm run push-live-book < /tmp/book.json
 ```
 
-Desk polls `/api/book` ~every 30s while open. Static bake remains a cold-start fallback:
+Desk polls `/api/book` ~every 30s. Signed-in **Refresh** on the P&L strip re-stamps asOf when ingest secrets are not set yet. Static bake remains a cold-start fallback:
 
 ```bash
 node scripts/refresh-market.mjs --from-stdin --write-ts < /path/to/snapshot.json
