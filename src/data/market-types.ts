@@ -48,6 +48,30 @@ export type MarketWatchlist = {
   symbols: string[]
 }
 
+export type BookOrderState =
+  | 'open'
+  | 'filled'
+  | 'cancelled'
+  | 'rejected'
+  | 'partial'
+
+export type BookOrder = {
+  id: string
+  asset: MarketAssetClass
+  symbol: string
+  side: 'buy' | 'sell'
+  type: 'market' | 'limit'
+  state: BookOrderState
+  qty: number
+  filledQty: number
+  avgPrice: number | null
+  limitPrice: number | null
+  createdAt: string
+  updatedAt: string
+  /** RH order UUID for audit crumbs */
+  rhOrderId: string
+}
+
 export type MarketSnapshot = {
   schemaVersion: number
   asOf: string
@@ -62,6 +86,7 @@ export type MarketSnapshot = {
   positions: MarketPosition[]
   watchlist: MarketWatchlist
   newsCrawl: string[]
+  orders?: BookOrder[]
 }
 
 /** How the desk is currently receiving marks. */

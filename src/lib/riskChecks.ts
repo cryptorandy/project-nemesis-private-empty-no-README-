@@ -238,10 +238,11 @@ export function runRiskSoftChecks(
 
   if (ticket.asset === 'Crypto') {
     checks.push({
-      id: 'crypto-stub',
+      id: 'crypto-armed',
       label: 'Crypto ticket',
-      detail: 'Crypto stub — marks from snapshot; same confirm ritual',
-      level: 'warn',
+      detail:
+        'Crypto armed · preview_crypto_order / place_crypto_order after desk confirm',
+      level: 'pass',
     })
     if (notional > RISK_CAPS.cryptoNotionalCap) {
       checks.push({

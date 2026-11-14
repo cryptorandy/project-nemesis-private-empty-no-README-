@@ -62,7 +62,7 @@ export function ConfirmGate({
             ? ' Equity → RH review_equity_order / place_equity_order after confirm.'
             : ticket.asset === 'Option'
               ? ' Option → RH review_option_order / place_option_order after confirm.'
-              : ''}
+              : ' Crypto → RH preview_crypto_order / place_crypto_order after confirm.'}
         </p>
 
         {preview && (

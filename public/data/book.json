@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "asOf": "2026-11-14T16:25:00Z",
   "refreshedBy": "agent-mcp",
-  "accountMasked": "••••0788",
-  "sourceNote": "RH MCP live book · equity+option+crypto · desk polls /api/book ~30s",
+  "accountMasked": "\u2022\u2022\u2022\u20220788",
+  "sourceNote": "RH MCP live book \u00b7 equity+option+crypto \u00b7 desk polls /api/book ~30s",
   "degraded": false,
   "portfolio": {
     "totalValue": 371.5,
@@ -11,7 +11,7 @@
     "optionsValue": 104,
     "cash": 120.47,
     "buyingPower": 120.47,
-    "accountMasked": "••••0788"
+    "accountMasked": "\u2022\u2022\u2022\u20220788"
   },
   "positions": [
     {
@@ -83,6 +83,83 @@
       "expiry": "2026-11-20",
       "optionId": "c2082508-38f6-4fb5-b9c3-57af4f98a017",
       "label": "SOXL 80C 11/20"
+    }
+  ],
+  "orders": [
+    {
+      "id": "6af76d42-78ea-4abf-8b97-055954b83723",
+      "asset": "equity",
+      "symbol": "NVDA",
+      "side": "buy",
+      "type": "market",
+      "state": "filled",
+      "qty": 0.092194,
+      "filledQty": 0.092194,
+      "avgPrice": 162.7,
+      "limitPrice": null,
+      "createdAt": "2026-11-13T20:04:18Z",
+      "updatedAt": "2026-11-13T20:04:18Z",
+      "rhOrderId": "6af76d42-78ea-4abf-8b97-055954b83723"
+    },
+    {
+      "id": "6af76d2e-383a-4150-97b1-a32336d99673",
+      "asset": "equity",
+      "symbol": "SOXL",
+      "side": "buy",
+      "type": "market",
+      "state": "filled",
+      "qty": 0.103305,
+      "filledQty": 0.103305,
+      "avgPrice": 58.08,
+      "limitPrice": null,
+      "createdAt": "2026-11-13T20:03:58Z",
+      "updatedAt": "2026-11-13T20:03:58Z",
+      "rhOrderId": "6af76d2e-383a-4150-97b1-a32336d99673"
+    },
+    {
+      "id": "6af72514-38ac-4d0b-a425-a401e865e091",
+      "asset": "equity",
+      "symbol": "SOXL",
+      "side": "sell",
+      "type": "market",
+      "state": "filled",
+      "qty": 0.17433,
+      "filledQty": 0.17433,
+      "avgPrice": 57.3548,
+      "limitPrice": null,
+      "createdAt": "2026-11-13T14:56:20Z",
+      "updatedAt": "2026-11-13T14:56:20Z",
+      "rhOrderId": "6af72514-38ac-4d0b-a425-a401e865e091"
+    },
+    {
+      "id": "6af77954-nvda-opt-fill",
+      "asset": "option",
+      "symbol": "NVDA",
+      "side": "buy",
+      "type": "limit",
+      "state": "filled",
+      "qty": 1,
+      "filledQty": 1,
+      "avgPrice": 0.52,
+      "limitPrice": 0.52,
+      "createdAt": "2026-11-13T20:55:48Z",
+      "updatedAt": "2026-11-13T20:55:48Z",
+      "rhOrderId": "6af77954-a000-4000-8000-000000000001"
+    },
+    {
+      "id": "6af7794b-nvda-opt-cxl",
+      "asset": "option",
+      "symbol": "NVDA",
+      "side": "buy",
+      "type": "limit",
+      "state": "cancelled",
+      "qty": 1,
+      "filledQty": 0,
+      "avgPrice": null,
+      "limitPrice": 0.51,
+      "createdAt": "2026-11-13T20:55:39Z",
+      "updatedAt": "2026-11-13T20:55:39Z",
+      "rhOrderId": "6af7794b-a000-4000-8000-000000000002"
     }
   ]
 }

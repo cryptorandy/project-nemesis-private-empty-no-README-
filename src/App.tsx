@@ -11,6 +11,7 @@ import { AgentRail } from './components/AgentRail'
 import { ConfirmGate } from './components/ConfirmGate'
 import { DeskBoard } from './components/DeskBoard'
 import { Hero } from './components/Hero'
+import { OrdersStrip } from './components/OrdersStrip'
 import {
   AuditSurface,
   ResearchSurface,
@@ -24,7 +25,11 @@ import { useLiveDesk } from './hooks/useLiveDesk'
 import { appendAudit, sealAudit } from './lib/auditLog'
 import { placeAfterConfirm } from './lib/placeOrder'
 import { runRiskSoftChecks } from './lib/riskChecks'
-import { toRhEquityParams, toRhOptionParams } from './lib/rhOrderParams'
+import {
+  toRhCryptoParams,
+  toRhEquityParams,
+  toRhOptionParams,
+} from './lib/rhOrderParams'
 import {
   buildAllowedUniverse,
   capitalFromPortfolio,
@@ -90,6 +95,8 @@ function App() {
   )
   const [dayPnl] = useState(readDayPnl)
   const [userLockedTicket, setUserLockedTicket] = useState(false)
+  const [mutedIds, setMutedIds] = useState<string[]>([])
+  const [agentFocusSymbol, setAgentFocusSymbol] = useState('')
 
   const live = useLiveDesk(killed)
   const liveMark =
@@ -280,6 +287,8 @@ function App() {
     board: live.board,
     crypto: live.crypto,
     positions: live.positions,
+    mutedIds,
+    focusSymbol: agentFocusSymbol,
     onStageTicket,
     onOptionIdeas: setOptionIdeas,
     onAudit: onSwarmAudit,
@@ -418,6 +427,9 @@ function App() {
         'error' in p
           ? p.error
           : `RH-shaped option · ${p.quantity}× ${p.legs[0]?.option_id.slice(0, 8)}…`
+    } else if (ticket.asset === 'Crypto') {
+      const p = toRhCryptoParams(ticket)
+      reviewNote = `RH-shaped crypto · ${p.side} ${p.quantity} ${p.symbol} ${p.type}`
     }
 
     const nextPreview: TicketPreview = {
@@ -486,7 +498,7 @@ function App() {
   }
 
   return (
-    <div className="desk">
+    <div className="desk mobile-ritual">
       <header className="desk-header">
         <div className="brand-lockup">
           <div className="mark" aria-hidden>
@@ -534,47 +546,58 @@ function App() {
         agents={swarm.agents}
         killed={killed}
         focusedId={focusedAgent}
+        mutedIds={mutedIds}
+        focusSymbol={agentFocusSymbol}
         onSelect={(id) =>
           setFocusedAgent((prev) => (prev === id ? null : id))
         }
+        onToggleMute={(id) => {
+          setMutedIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+          )
+        }}
+        onFocusSymbolChange={setAgentFocusSymbol}
       />
 
       <div className="desk-body">
         {surface === 'board' && (
-          <DeskBoard
-            indices={live.indices}
-            board={live.board}
-            crypto={live.crypto}
-            positions={live.positions}
-            portfolio={live.portfolio}
-            flashKeys={live.flashKeys}
-            activity={swarm.activity}
-            agents={swarm.agents}
-            briefs={swarm.briefs}
-            deskBrief={swarm.deskBrief}
-            optionIdeas={boardIdeas}
-            tape={live.tape}
-            newsLine={swarm.newsLine || live.newsLine}
-            clock={live.clock}
-            asOf={live.asOf}
-            asOfShort={live.asOfShort}
-            sourceNote={live.sourceNote}
-            feedStatus={live.feedStatus}
-            killed={killed}
-            focusedAgent={focusedAgent}
-            loopCount={swarm.loopCount}
-            scanHits={swarm.scanHits}
-            refreshing={live.refreshing}
-            onRefreshBook={() => {
-              void live.refreshBook()
-            }}
-            onSelectAgent={(id) =>
-              setFocusedAgent((prev) => (prev === id ? null : id))
-            }
-            onPickSymbol={pickSymbol}
-            onStageIdea={onStageIdea}
-            onStageActivityDraft={onStageActivityDraft}
-          />
+          <>
+            <DeskBoard
+              indices={live.indices}
+              board={live.board}
+              crypto={live.crypto}
+              positions={live.positions}
+              portfolio={live.portfolio}
+              flashKeys={live.flashKeys}
+              activity={swarm.activity}
+              agents={swarm.agents}
+              briefs={swarm.briefs}
+              deskBrief={swarm.deskBrief}
+              optionIdeas={boardIdeas}
+              tape={live.tape}
+              newsLine={swarm.newsLine || live.newsLine}
+              clock={live.clock}
+              asOf={live.asOf}
+              asOfShort={live.asOfShort}
+              sourceNote={live.sourceNote}
+              feedStatus={live.feedStatus}
+              killed={killed}
+              focusedAgent={focusedAgent}
+              loopCount={swarm.loopCount}
+              scanHits={swarm.scanHits}
+              refreshing={live.refreshing}
+              onRefreshBook={() => {
+                void live.refreshBook()
+              }}
+              onSelectAgent={(id) =>
+                setFocusedAgent((prev) => (prev === id ? null : id))
+              }
+              onPickSymbol={pickSymbol}
+              onStageIdea={onStageIdea}
+              onStageActivityDraft={onStageActivityDraft}
+            />
+            <OrdersStrip orders={live.orders} onPickSymbol={pickSymbol} />
+          </>
         )}
         {surface === 'research' && (
           <ResearchSurface

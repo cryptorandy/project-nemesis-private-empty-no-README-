@@ -50,6 +50,10 @@ export type UseAgentSwarmArgs = {
   board: QuoteRow[]
   crypto: QuoteRow[]
   positions: MarketPosition[]
+  /** Per-agent mute — loop skipped without kill-switching the desk. */
+  mutedIds?: string[]
+  /** Optional symbol focus — heuristics see filtered board/positions. */
+  focusSymbol?: string
   /** Called when Execution Prep stages a draft (never places). */
   onStageTicket?: (ticket: StagedTicket) => void
   /** Called when Options Flow publishes ranked buy ideas (Greeks required). */
@@ -71,6 +75,8 @@ export function useAgentSwarm({
   board,
   crypto,
   positions,
+  mutedIds = [],
+  focusSymbol = '',
   onStageTicket,
   onOptionIdeas,
   onAudit,
@@ -96,9 +102,24 @@ export function useAgentSwarm({
   }, [onStageTicket, onOptionIdeas, onAudit])
 
   useEffect(() => {
-    const bookPnl = positions.reduce((s, p) => s + p.pnl, 0)
-    marketRef.current = { board, crypto, positions, bookPnl }
-  }, [board, crypto, positions])
+    const focus = focusSymbol.trim().toUpperCase()
+    const filtBoard = focus
+      ? board.filter((q) => q.symbol === focus)
+      : board
+    const filtCrypto = focus
+      ? crypto.filter((q) => q.symbol === focus)
+      : crypto
+    const filtPos = focus
+      ? positions.filter((p) => p.symbol === focus)
+      : positions
+    const bookPnl = filtPos.reduce((s, p) => s + p.pnl, 0)
+    marketRef.current = {
+      board: filtBoard.length ? filtBoard : board,
+      crypto: filtCrypto,
+      positions: filtPos.length ? filtPos : positions,
+      bookPnl,
+    }
+  }, [board, crypto, positions, focusSymbol])
 
   useEffect(() => {
     if (killed) {
@@ -114,11 +135,28 @@ export function useAgentSwarm({
       return
     }
 
+    const muted = new Set(mutedIds)
     const timers: number[] = []
 
     for (const meta of AGENT_ROSTER) {
       const fire = () => {
         const id = meta.id
+        if (muted.has(id)) {
+          setState((prev) => ({
+            ...prev,
+            agents: prev.agents.map((a) =>
+              a.id === id
+                ? {
+                    ...a,
+                    status: 'muted' as AgentLoopStatus,
+                    thought: `Muted · ${meta.name} loop skipped`,
+                  }
+                : a,
+            ),
+          }))
+          return
+        }
+
         const n = (loopRef.current[id] ?? 0) + 1
         loopRef.current[id] = n
 
@@ -130,7 +168,7 @@ export function useAgentSwarm({
               ? {
                   ...a,
                   status: meta.workStatus,
-                  thought: `${meta.name} loop #${n}…`,
+                  thought: `${meta.name} loop #${n}${focusSymbol ? ` · focus ${focusSymbol}` : ''}…`,
                 }
               : a,
           ),
@@ -218,7 +256,7 @@ export function useAgentSwarm({
         window.clearInterval(t)
       })
     }
-  }, [killed])
+  }, [killed, mutedIds, focusSymbol])
 
   return {
     agents: state.agents,

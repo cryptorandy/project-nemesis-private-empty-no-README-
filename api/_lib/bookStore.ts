@@ -36,6 +36,29 @@ export type BookPortfolio = {
   accountMasked: string
 }
 
+export type BookOrderState =
+  | 'open'
+  | 'filled'
+  | 'cancelled'
+  | 'rejected'
+  | 'partial'
+
+export type BookOrder = {
+  id: string
+  asset: BookAssetClass
+  symbol: string
+  side: 'buy' | 'sell'
+  type: 'market' | 'limit'
+  state: BookOrderState
+  qty: number
+  filledQty: number
+  avgPrice: number | null
+  limitPrice: number | null
+  createdAt: string
+  updatedAt: string
+  rhOrderId: string
+}
+
 export type LiveBook = {
   schemaVersion: number
   asOf: string
@@ -45,6 +68,7 @@ export type LiveBook = {
   degraded: boolean
   portfolio: BookPortfolio
   positions: BookPosition[]
+  orders?: BookOrder[]
 }
 
 const MASK = '••••0788'
@@ -75,6 +99,36 @@ function scrubBook(raw: LiveBook): LiveBook {
       accountMasked,
     },
     positions: (raw.positions ?? []).map((p) => scrubPosition(p)),
+    orders: Array.isArray(raw.orders)
+      ? raw.orders.map((o) => scrubOrder(o))
+      : undefined,
+  }
+}
+
+function scrubOrder(o: BookOrder): BookOrder {
+  const asset: BookAssetClass =
+    o.asset === 'option' || o.asset === 'crypto' ? o.asset : 'equity'
+  const state: BookOrderState =
+    o.state === 'filled' ||
+    o.state === 'cancelled' ||
+    o.state === 'rejected' ||
+    o.state === 'partial'
+      ? o.state
+      : 'open'
+  return {
+    id: String(o.id || o.rhOrderId || ''),
+    asset,
+    symbol: String(o.symbol),
+    side: o.side === 'sell' ? 'sell' : 'buy',
+    type: o.type === 'limit' ? 'limit' : 'market',
+    state,
+    qty: Number(o.qty) || 0,
+    filledQty: Number(o.filledQty) || 0,
+    avgPrice: o.avgPrice == null ? null : Number(o.avgPrice) || 0,
+    limitPrice: o.limitPrice == null ? null : Number(o.limitPrice) || 0,
+    createdAt: String(o.createdAt || ''),
+    updatedAt: String(o.updatedAt || o.createdAt || ''),
+    rhOrderId: String(o.rhOrderId || o.id || ''),
   }
 }
 

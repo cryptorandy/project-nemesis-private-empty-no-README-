@@ -9,11 +9,13 @@ import {
   pingBookRefresh,
 } from '../data/load-market'
 import type {
+  BookOrder,
   FeedStatus,
   MarketPortfolio,
   MarketPosition,
   MarketQuote,
 } from '../data/market-types'
+import { BOOK_ORDERS } from '../data/orders-bake'
 import type { QuoteRow } from '../types'
 
 /** Full board poll (quotes + static market bake). */
@@ -104,6 +106,9 @@ export function useLiveDesk(killed: boolean) {
   const [positions, setPositions] = useState<MarketPosition[]>(() =>
     seed.positions.map((p) => ({ ...p })),
   )
+  const [orders, setOrders] = useState<BookOrder[]>(() =>
+    (seed.orders ?? BOOK_ORDERS).map((o) => ({ ...o })),
+  )
   const [portfolio, setPortfolio] = useState<MarketPortfolio>({
     ...seed.portfolio,
   })
@@ -145,6 +150,7 @@ export function useLiveDesk(killed: boolean) {
       setIndices(snap.indices.map(toRow))
       setCrypto(snap.crypto.map(toRow))
       setPositions(snap.positions.map((p) => ({ ...p })))
+      setOrders((snap.orders ?? BOOK_ORDERS).map((o) => ({ ...o })))
       setPortfolio({ ...snap.portfolio })
       setNewsCrawl([...snap.newsCrawl])
       if (fromPoll) {
@@ -182,6 +188,7 @@ export function useLiveDesk(killed: boolean) {
           setSourceNote(merged.sourceNote)
           setDegradedFlag(merged.degraded)
           setPositions(merged.positions.map((p) => ({ ...p })))
+          setOrders((merged.orders ?? BOOK_ORDERS).map((o) => ({ ...o })))
           setPortfolio({ ...merged.portfolio })
           setPollOk(true)
           setLastPollAt(Date.now())
@@ -283,6 +290,7 @@ export function useLiveDesk(killed: boolean) {
           setSourceNote(merged.sourceNote)
           setDegradedFlag(merged.degraded)
           setPositions(merged.positions.map((p) => ({ ...p })))
+          setOrders((merged.orders ?? BOOK_ORDERS).map((o) => ({ ...o })))
           setPortfolio({ ...merged.portfolio })
           setPollOk(true)
           setLastPollAt(Date.now())
@@ -299,6 +307,7 @@ export function useLiveDesk(killed: boolean) {
         setSourceNote(merged.sourceNote)
         setDegradedFlag(merged.degraded)
         setPositions(merged.positions.map((p) => ({ ...p })))
+        setOrders((merged.orders ?? BOOK_ORDERS).map((o) => ({ ...o })))
         setPortfolio({ ...merged.portfolio })
         setPollOk(true)
         setLastPollAt(Date.now())
@@ -324,6 +333,7 @@ export function useLiveDesk(killed: boolean) {
     indices,
     crypto,
     positions,
+    orders,
     portfolio,
     flashKeys,
     tape,
