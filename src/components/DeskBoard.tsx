@@ -4,7 +4,12 @@ import type { AgentBrief, AgentId } from '../agents/types'
 import { formatMoney, formatPct } from '../data/mock'
 import type { FeedStatus, MarketPortfolio, MarketPosition } from '../data/market-types'
 import { OPTIONS_SCAN_AS_OF } from '../data/options-scan'
-import type { ActivityTick, LiveAgentState, QuoteRow } from '../types'
+import type {
+  ActivityTick,
+  LiveAgentState,
+  QuoteRow,
+  TicketDraft,
+} from '../types'
 
 type DeskBoardProps = {
   indices: QuoteRow[]
@@ -33,8 +38,11 @@ type DeskBoardProps = {
   onRefreshBook?: () => void
   onSelectAgent: (id: string) => void
   onPickSymbol: (symbol: string) => void
+  scanHits?: string[]
   /** One-tap stage into ticket rail — never places. */
   onStageIdea: (idea: OptionBuyIdea) => void
+  /** Activity Stage from Alert Watch fires — still confirm. */
+  onStageActivityDraft?: (draft: TicketDraft) => void
 }
 
 function feedLabel(status: FeedStatus): string {
@@ -82,11 +90,14 @@ export function DeskBoard({
   loopCount,
   refreshing = false,
   onRefreshBook,
+  scanHits = [],
   onSelectAgent,
   onPickSymbol,
   onStageIdea,
+  onStageActivityDraft,
 }: DeskBoardProps) {
   const bookPnl = positions.reduce((s, p) => s + p.pnl, 0)
+  const scanSet = new Set(scanHits)
 
   return (
     <section className="board" aria-label="Nemesis trading board">
@@ -213,10 +224,17 @@ export function DeskBoard({
               <button
                 key={q.symbol}
                 type="button"
-                className={`quote-cell${flashKeys[q.symbol] ? ' flash' : ''}`}
+                className={`quote-cell${flashKeys[q.symbol] ? ' flash' : ''}${scanSet.has(q.symbol) ? ' scan-hit' : ''}`}
                 onClick={() => onPickSymbol(q.symbol)}
               >
-                <span className="qc-sym">{q.symbol}</span>
+                <span className="qc-sym">
+                  {q.symbol}
+                  {scanSet.has(q.symbol) ? (
+                    <span className="scan-badge" title="Live scanner hit">
+                      SCAN
+                    </span>
+                  ) : null}
+                </span>
                 <span className="qc-px">{formatMoney(q.price)}</span>
                 <Chg n={q.changePct} />
                 {q.note && <span className="qc-note">{q.note}</span>}
@@ -471,6 +489,17 @@ export function DeskBoard({
                 <span className="activity-text" title={t.text}>
                   {t.text}
                 </span>
+                {t.stageDraft && onStageActivityDraft ? (
+                  <button
+                    type="button"
+                    className="btn btn-stage activity-stage"
+                    disabled={killed}
+                    onClick={() => onStageActivityDraft(t.stageDraft!)}
+                    title="Stage fired alert into ticket — confirm still required"
+                  >
+                    Stage
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>

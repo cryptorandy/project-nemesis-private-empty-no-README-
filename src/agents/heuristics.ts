@@ -1,10 +1,14 @@
 import {
+  ALERT_CONFIGS,
+  ALERT_FIRED,
   CRYPTO_MARKS,
   EARNINGS_NEAR,
   FILING_HITS,
   OPTION_POSITIONS,
   PORTFOLIO_MARKS,
+  RESEARCH_DEPTH_FOCUS,
   SCAN_GAINERS,
+  SCAN_LIVE_META,
   SOFT_LIMITS,
 } from '../data/agent-context'
 import { CAPITAL_RULES } from '../data/options-scan'
@@ -18,8 +22,10 @@ import { metaById } from './roster'
 import type {
   AgentBrief,
   AgentId,
+  AlertHit,
   BriefSeverity,
   LoopResult,
+  ResearchDepthPayload,
   SwarmMarketView,
   StagedTicket,
 } from './types'
@@ -137,7 +143,7 @@ export function runChief(
   }
 }
 
-/** Scanner Watch — RH gainers scan + board movers. */
+/** Scanner Watch — live RH run_scan hits + board movers. */
 export function runScanner(market: SwarmMarketView, loopN: number): LoopResult {
   const hit = SCAN_GAINERS[loopN % SCAN_GAINERS.length]
   const boardHit = boardMovers(market, 1.2)[0]
@@ -147,10 +153,12 @@ export function runScanner(market: SwarmMarketView, loopN: number): LoopResult {
         market.board.find((q) => q.symbol === p.symbol)?.changePct ?? p.pnlPct,
       ) >= 1.5,
   )
+  const mcp = SCAN_LIVE_META.mcpOk ? 'MCP ok' : 'MCP stale'
+  const scanHits = SCAN_GAINERS.map((h) => h.symbol)
 
   let severity: BriefSeverity = 'info'
   let headline = `${hit.symbol} +${hit.changePct.toFixed(1)}% scan`
-  let detail = `Daily gainers · ${hit.name} last ${money(hit.last)} · rel vol ${hit.relVolume.toFixed(2)}`
+  let detail = `${SCAN_LIVE_META.title} · ${hit.name} last ${money(hit.last)} · rel vol ${hit.relVolume.toFixed(2)} · ${mcp} · ${SCAN_LIVE_META.totalItems} hits`
   const symbols = [hit.symbol]
 
   if (holdOverlap) {
@@ -174,9 +182,104 @@ export function runScanner(market: SwarmMarketView, loopN: number): LoopResult {
   return {
     agentId: 'scan',
     status: statusFrom(severity),
+    thought: `${headline} · ${mcp}`,
+    brief: b,
+    activity: activity(
+      'scan',
+      `${headline} · ${detail}`,
+      `${loopN}-${hit.symbol}`,
+    ),
+    scanHits,
+  }
+}
+
+/** Alert Watch — fired RH alerts → activity Stage (confirm still required). */
+export function runAlertWatch(loopN: number): LoopResult {
+  const unread = ALERT_FIRED.filter((a) => !a.read)
+  const focus = unread[loopN % Math.max(unread.length, 1)] ?? ALERT_FIRED[0]
+  const armed = ALERT_CONFIGS.filter((a) => a.enabled).length
+
+  let severity: BriefSeverity = 'info'
+  let headline = 'Alert Watch · quiet'
+  let detail = `${armed} armed · no unread fires`
+  const symbols: string[] = []
+  let staged: StagedTicket | undefined
+  let alertHits: AlertHit[] | undefined
+  let act = activity('alert', headline, `${loopN}`)
+
+  if (focus) {
+    severity = focus.read ? 'watch' : 'escalate'
+    headline = `Fired · ${focus.symbol} ${focus.conditionType.replace(/_/g, ' ')}`
+    detail = `Target ${money(focus.targetPrice)} · trig ${money(focus.triggeredPrice)} @ ${focus.triggeredAt.slice(0, 16)}Z · mark ${money(focus.mark)} · Stage only`
+    symbols.push(focus.symbol)
+    alertHits = ALERT_FIRED.map((a) => ({ ...a }))
+    const draft = {
+      asset: 'Equity' as const,
+      side: 'Buy' as const,
+      symbol: focus.symbol,
+      qty: 1,
+      order: 'Limit' as const,
+      limit: Math.round(focus.mark * 100) / 100,
+      tif: 'Day' as const,
+    }
+    staged = {
+      ...draft,
+      reason: `ALERT fired ${focus.conditionType} ${focus.symbol} @ ${focus.triggeredPrice} (target ${focus.targetPrice}) · confirm still required`,
+      stagedBy: 'alert',
+      stagedAt: isoNow(),
+      alertLogId: focus.alertLogId,
+    }
+    act = {
+      ...activity(
+        'alert',
+        `${headline} — ${detail}`,
+        `${loopN}-${focus.alertLogId.slice(0, 8)}`,
+      ),
+      stageDraft: draft,
+    }
+  }
+
+  const b = brief('alert', headline, detail, severity, symbols)
+  return {
+    agentId: 'alert',
+    status: statusFrom(severity),
     thought: headline,
     brief: b,
-    activity: activity('scan', `${headline} · ${detail}`, `${loopN}-${hit.symbol}`),
+    activity: act,
+    stagedTicket: staged,
+    alertHits,
+  }
+}
+
+/** Research Depth — focus-symbol fundamentals / RSI / MACD / filings. */
+export function runResearchDepth(loopN: number): LoopResult {
+  const d = RESEARCH_DEPTH_FOCUS
+  const payload: ResearchDepthPayload = { ...d, filings: [...d.filings] }
+  const rsi = d.rsi14
+  let severity: BriefSeverity = 'info'
+  if (rsi != null && rsi < 30) severity = 'watch'
+  if (rsi != null && rsi < 25) severity = 'escalate'
+
+  const headline = `${d.symbol} depth · RSI ${rsi?.toFixed(1) ?? 'n/a'}`
+  const detail = [
+    `PE ${d.pe?.toFixed(1) ?? 'n/a'} · PB ${d.pb?.toFixed(1) ?? 'n/a'}`,
+    `MACD ${d.macd?.toFixed(2)} / sig ${d.macdSignal?.toFixed(2)} · hist ${d.macdHist?.toFixed(2)}`,
+    d.earningsDate
+      ? `Earn ${d.earningsDate} est ${d.earningsEstimate ?? 'n/a'}`
+      : null,
+    `SEC ${d.filings[0]?.form ?? '—'} ${d.filings[0]?.date ?? ''}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  const b = brief('depth', headline, detail, severity, [d.symbol])
+  return {
+    agentId: 'depth',
+    status: statusFrom(severity),
+    thought: headline,
+    brief: b,
+    activity: activity('depth', `${headline} — ${detail}`, `${loopN}`),
+    researchDepth: payload,
   }
 }
 
@@ -561,6 +664,8 @@ export function runAgent(
       return runChief(briefs, loopN)
     case 'scan':
       return runScanner(market, loopN)
+    case 'alert':
+      return runAlertWatch(loopN)
     case 'risk':
       return runRisk(market, loopN)
     case 'earn':
@@ -575,5 +680,7 @@ export function runAgent(
       return runPortfolio(market, loopN)
     case 'exec':
       return runExecPrep(market, briefs, riskFlags, loopN)
+    case 'depth':
+      return runResearchDepth(loopN)
   }
 }

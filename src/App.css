@@ -1007,6 +1007,22 @@
   font-weight: 700;
   font-size: 0.78rem;
   color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.scan-badge {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  color: var(--amber, #e8b86d);
+  border: 1px solid color-mix(in srgb, var(--amber, #e8b86d) 50%, transparent);
+  padding: 0.05rem 0.25rem;
+}
+
+.quote-cell.scan-hit {
+  outline: 1px solid color-mix(in srgb, var(--amber, #e8b86d) 35%, transparent);
 }
 
 .qc-px {
@@ -1387,13 +1403,19 @@
 
 .activity-row {
   display: grid;
-  grid-template-columns: 4.2rem 3rem minmax(0, 1fr);
+  grid-template-columns: 4.2rem 3.4rem minmax(0, 1fr) auto;
   gap: 0.45rem;
+  align-items: center;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   padding: 0.25rem 0;
   border-bottom: 1px solid var(--line);
   animation: thought-in 0.3s ease-out;
+}
+
+.activity-stage {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.62rem;
 }
 
 .activity-time {
@@ -1656,6 +1678,77 @@
   margin-top: 0.9rem;
   font-size: 0.78rem;
   color: var(--dim);
+}
+
+.research-depth {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  max-width: 48rem;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.research-depth-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.research-focus-sym {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.research-focus-name {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.research-fund-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.research-fund-grid .pnl-label {
+  display: block;
+}
+
+.research-tech-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.75rem;
+}
+
+.research-earn-sec {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 1rem;
+}
+
+.research-earn-sec h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+.research-earn-sec ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .research-card {

@@ -11,6 +11,7 @@ import type { OptionBuyIdea } from './optionsScanner'
 export type AgentId =
   | 'chief'
   | 'scan'
+  | 'alert'
   | 'risk'
   | 'earn'
   | 'flow'
@@ -18,6 +19,7 @@ export type AgentId =
   | 'news'
   | 'book'
   | 'exec'
+  | 'depth'
 
 export type BriefSeverity = 'info' | 'watch' | 'escalate'
 
@@ -32,10 +34,45 @@ export type AgentBrief = {
 
 export type StagedTicket = TicketDraft & {
   reason: string
-  stagedBy: 'exec' | 'flow' | 'scan' | 'options-scan'
+  stagedBy: 'exec' | 'flow' | 'scan' | 'options-scan' | 'alert'
   stagedAt: string
   /** Optional link back to ranked options idea */
   ideaId?: string
+  /** Fired RH alert log id when staged from Alert Watch */
+  alertLogId?: string
+}
+
+export type AlertHit = {
+  alertLogId: string
+  alertId: string
+  symbol: string
+  conditionType: string
+  targetPrice: number
+  triggeredPrice: number
+  triggeredAt: string
+  read: boolean
+  mark: number
+}
+
+export type ResearchDepthPayload = {
+  symbol: string
+  asOf: string
+  name: string
+  sector: string
+  industry: string
+  pe: number | null
+  pb: number | null
+  marketCap: number | null
+  high52: number | null
+  low52: number | null
+  rsi14: number | null
+  macd: number | null
+  macdSignal: number | null
+  macdHist: number | null
+  earningsDate: string | null
+  earningsEstimate: number | null
+  filings: { form: string; date: string; description: string }[]
+  note: string
 }
 
 export type SwarmMarketView = {
@@ -54,6 +91,9 @@ export type LoopResult = {
   stagedTicket?: StagedTicket
   riskFlags?: string[]
   optionIdeas?: OptionBuyIdea[]
+  alertHits?: AlertHit[]
+  scanHits?: string[]
+  researchDepth?: ResearchDepthPayload
 }
 
 export type DeskSwarmState = {
@@ -64,6 +104,9 @@ export type DeskSwarmState = {
   riskFlags: string[]
   stagedTicket: StagedTicket | null
   optionIdeas: OptionBuyIdea[]
+  alertHits: AlertHit[]
+  scanHits: string[]
+  researchDepth: ResearchDepthPayload | null
   newsLine: string
   loopCount: number
 }

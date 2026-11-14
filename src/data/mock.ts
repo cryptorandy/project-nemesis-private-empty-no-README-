@@ -9,6 +9,7 @@ import { RH_BOARD, RH_CRYPTO, RH_INDICES } from './rh-snapshot'
 export const AGENTS: Agent[] = [
   { id: 'chief', short: 'CHIEF', name: 'Desk Chief', status: 'briefing' },
   { id: 'scan', short: 'SCAN', name: 'Scanner Watch', status: 'scanning' },
+  { id: 'alert', short: 'ALERT', name: 'Alert Watch', status: 'scanning' },
   { id: 'risk', short: 'RISK', name: 'Risk Guard', status: 'idle' },
   { id: 'earn', short: 'EARN', name: 'Earnings Brief', status: 'briefing' },
   { id: 'flow', short: 'FLOW', name: 'Options Flow', status: 'scanning' },
@@ -16,6 +17,7 @@ export const AGENTS: Agent[] = [
   { id: 'news', short: 'NEWS', name: 'News / Filings', status: 'scanning' },
   { id: 'book', short: 'BOOK', name: 'Portfolio Ops', status: 'briefing' },
   { id: 'exec', short: 'EXEC', name: 'Execution Prep', status: 'idle' },
+  { id: 'depth', short: 'DEPTH', name: 'Research Depth', status: 'briefing' },
 ]
 
 export const WATCH = [...RH_BOARD, ...RH_CRYPTO]

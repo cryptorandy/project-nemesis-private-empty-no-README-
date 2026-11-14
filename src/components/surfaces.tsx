@@ -1,6 +1,11 @@
 import type { OptionBuyIdea } from '../agents/optionsScanner'
-import type { AgentBrief, AgentId } from '../agents/types'
+import type {
+  AgentBrief,
+  AgentId,
+  ResearchDepthPayload,
+} from '../agents/types'
 import { metaById } from '../agents/roster'
+import { RESEARCH_DEPTH_FOCUS } from '../data/agent-context'
 import { SIZE_LIMITS } from '../data/mock'
 import { RH_AS_OF, RH_PORTFOLIO, RH_SOURCE_NOTE } from '../data/rh-snapshot'
 import type { RiskReport } from '../lib/riskChecks'
@@ -16,16 +21,35 @@ type ResearchProps = {
   deskBrief: AgentBrief | null
   briefs: Partial<Record<AgentId, AgentBrief>>
   optionIdeas: OptionBuyIdea[]
+  researchDepth?: ResearchDepthPayload | null
+  focusSymbol?: string
+  onPickSymbol?: (symbol: string) => void
+}
+
+function moneyCap(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return 'n/a'
+  if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`
+  return `$${n.toFixed(0)}`
 }
 
 export function ResearchSurface({
   deskBrief,
   briefs,
   optionIdeas,
+  researchDepth,
+  focusSymbol,
+  onPickSymbol,
 }: ResearchProps) {
+  const depth = researchDepth ?? {
+    ...RESEARCH_DEPTH_FOCUS,
+    filings: [...RESEARCH_DEPTH_FOCUS.filings],
+  }
+  const focus = focusSymbol || depth.symbol
   const specialists = (
     Object.entries(briefs) as [AgentId, AgentBrief][]
   ).filter(([id]) => id !== 'chief')
+  const depthBrief = briefs.depth
 
   return (
     <section className="surface" aria-labelledby="research-title">
@@ -34,20 +58,97 @@ export function ResearchSurface({
         Research
       </h1>
       <p className="surface-sub">
-        Desk Chief merge + specialist briefs from live agent loops (RH MCP
-        context + heuristics). Options buys require Δ/Γ/Θ/ν.
+        Focus-symbol workspace · fundamentals · RSI/MACD · earnings · SEC ·
+        Depth agent loops (never place).
       </p>
+
+      <div className="research-depth" aria-label="Focus symbol depth">
+        <header className="research-depth-head">
+          <button
+            type="button"
+            className="research-focus-sym linkish"
+            onClick={() => onPickSymbol?.(depth.symbol)}
+          >
+            {depth.symbol}
+          </button>
+          <span className="research-focus-name">{depth.name}</span>
+          <span className="dim">
+            {depth.sector} · {depth.industry}
+          </span>
+          <span className="zone-tag">as of {depth.asOf.slice(11, 16)}Z</span>
+        </header>
+
+        <div className="research-fund-grid">
+          <div>
+            <span className="pnl-label">PE</span>
+            <span className="pnl-val">{depth.pe?.toFixed(1) ?? 'n/a'}</span>
+          </div>
+          <div>
+            <span className="pnl-label">PB</span>
+            <span className="pnl-val">{depth.pb?.toFixed(1) ?? 'n/a'}</span>
+          </div>
+          <div>
+            <span className="pnl-label">Mkt cap</span>
+            <span className="pnl-val">{moneyCap(depth.marketCap)}</span>
+          </div>
+          <div>
+            <span className="pnl-label">52w</span>
+            <span className="pnl-val tiny">
+              {depth.low52?.toFixed(1) ?? '—'} – {depth.high52?.toFixed(1) ?? '—'}
+            </span>
+          </div>
+        </div>
+
+        <div className="research-tech-strip" aria-label="Technical strip">
+          <span>
+            RSI14 <strong>{depth.rsi14?.toFixed(1) ?? 'n/a'}</strong>
+          </span>
+          <span>
+            MACD <strong>{depth.macd?.toFixed(2) ?? 'n/a'}</strong>
+          </span>
+          <span>
+            Signal <strong>{depth.macdSignal?.toFixed(2) ?? 'n/a'}</strong>
+          </span>
+          <span>
+            Hist <strong>{depth.macdHist?.toFixed(2) ?? 'n/a'}</strong>
+          </span>
+        </div>
+
+        <div className="research-earn-sec">
+          <div>
+            <h3>Earnings</h3>
+            <p>
+              {depth.earningsDate
+                ? `${depth.earningsDate} · est ${depth.earningsEstimate ?? 'n/a'}`
+                : 'No near print'}
+            </p>
+          </div>
+          <div>
+            <h3>SEC</h3>
+            <ul>
+              {depth.filings.slice(0, 4).map((f) => (
+                <li key={`${f.form}-${f.date}`}>
+                  <strong>{f.form}</strong> {f.date} — {f.description}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <p className="panel-foot">{depth.note}</p>
+      </div>
+
       <div className="research-card">
         <div className="research-focus">
           Desk brief · {deskBrief?.severity ?? 'idle'}
+          {focus ? ` · ticket focus ${focus}` : ''}
         </div>
         <h3>{deskBrief?.headline ?? 'Waiting first Chief loop…'}</h3>
         <p className="research-detail">
           {deskBrief?.detail ?? RH_SOURCE_NOTE}
         </p>
-        {deskBrief?.symbols?.length ? (
-          <p className="research-syms">
-            Symbols · {deskBrief.symbols.join(' · ')}
+        {depthBrief ? (
+          <p className="research-detail">
+            <strong>DEPTH</strong> — {depthBrief.headline}
           </p>
         ) : null}
         <ul>

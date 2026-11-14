@@ -30,6 +30,14 @@ export const AGENT_ROSTER: AgentMeta[] = [
     workStatus: 'scanning',
   },
   {
+    id: 'alert',
+    short: 'ALERT',
+    name: 'Alert Watch',
+    intervalMs: 10500,
+    offsetMs: 1200,
+    workStatus: 'scanning',
+  },
+  {
     id: 'risk',
     short: 'RISK',
     name: 'Risk Guard',
@@ -83,6 +91,14 @@ export const AGENT_ROSTER: AgentMeta[] = [
     name: 'Execution Prep',
     intervalMs: 9000,
     offsetMs: 5200,
+    workStatus: 'briefing',
+  },
+  {
+    id: 'depth',
+    short: 'DEPTH',
+    name: 'Research Depth',
+    intervalMs: 15000,
+    offsetMs: 5800,
     workStatus: 'briefing',
   },
 ]
