@@ -84,7 +84,13 @@ Agent-loop context in `src/data/agent-context.ts` + options bake in `src/data/op
 - Crypto marks vs prior open
 - Soft limits: **10% BP / trade**, **5% day loss**, **watchlist-only**
 
-Nine specialists run **real timed loops** over that context + Layer 1 board marks. Kill switch pauses every loop. Options Flow / Execution Prep only **stage** — never place.
+Specialists (Chief → Alert → Scanner → Depth → Exec) run **real timed loops** over that context + Layer 1 board marks. Kill switch pauses every loop. Alert Watch / Options Flow / Execution Prep only **stage** — never place.
+
+### Tools layer (TD-32)
+
+- **Alert Watch** — `get_alerts` / `get_alert_log` bake → activity **Stage** into ticket (confirm still required)
+- **Live Scanner Watch** — `run_scan` Daily gainers hits + MCP ok status; SCAN badges on quote grid when symbols overlap
+- **Research Depth** — focus-symbol workspace (fundamentals, RSI/MACD, earnings, SEC) from RH MCP bake
 
 ## Still mock / stub
 

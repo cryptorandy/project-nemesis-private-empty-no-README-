@@ -38,6 +38,9 @@ const INITIAL: DeskSwarmState = {
   riskFlags: [],
   stagedTicket: null,
   optionIdeas: [],
+  alertHits: [],
+  scanHits: [],
+  researchDepth: null,
   newsLine: `Swarm armed · RH agent context ${AGENT_CONTEXT_AS_OF} · no place path`,
   loopCount: 0,
 }
@@ -155,7 +158,14 @@ export function useAgentSwarm({
         }
 
         const auditAction =
-          id === 'risk' ? 'risk' : id === 'scan' || id === 'flow' || id === 'cryp' ? 'scan' : 'brief'
+          id === 'risk'
+            ? 'risk'
+            : id === 'scan' ||
+                id === 'flow' ||
+                id === 'cryp' ||
+                id === 'alert'
+              ? 'scan'
+              : 'brief'
         auditCb.current?.(
           meta.name,
           auditAction,
@@ -186,6 +196,9 @@ export function useAgentSwarm({
             riskFlags: result.riskFlags ?? prev.riskFlags,
             stagedTicket: result.stagedTicket ?? prev.stagedTicket,
             optionIdeas: result.optionIdeas ?? prev.optionIdeas,
+            alertHits: result.alertHits ?? prev.alertHits,
+            scanHits: result.scanHits ?? prev.scanHits,
+            researchDepth: result.researchDepth ?? prev.researchDepth,
             newsLine: `${meta.short} · ${result.thought}`,
             loopCount: prev.loopCount + 1,
           }
@@ -215,6 +228,9 @@ export function useAgentSwarm({
     riskFlags: state.riskFlags,
     stagedTicket: state.stagedTicket,
     optionIdeas: state.optionIdeas,
+    alertHits: state.alertHits,
+    scanHits: state.scanHits,
+    researchDepth: state.researchDepth,
     newsLine: state.newsLine,
     loopCount: state.loopCount,
     clock: nowTime(),

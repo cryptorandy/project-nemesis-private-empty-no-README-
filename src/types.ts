@@ -29,6 +29,8 @@ export type ActivityTick = {
   time: string
   agent: string
   text: string
+  /** One-tap Stage into ticket rail (still confirm to place). */
+  stageDraft?: TicketDraft
 }
 
 export type QuoteRow = {

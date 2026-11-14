@@ -176,7 +176,8 @@ function App() {
       const fromScanner =
         staged.stagedBy === 'scan' ||
         staged.stagedBy === 'flow' ||
-        staged.stagedBy === 'options-scan'
+        staged.stagedBy === 'options-scan' ||
+        staged.stagedBy === 'alert'
       if (
         gateRef.current ||
         phaseRef.current === 'previewed' ||
@@ -219,7 +220,28 @@ function App() {
 
   const onStageTicket = useCallback(
     (staged: StagedTicket) => {
-      applyStaged(staged, 'Execution Prep')
+      const entity =
+        staged.stagedBy === 'alert'
+          ? 'Alert Watch'
+          : staged.stagedBy === 'scan'
+            ? 'Scanner Watch'
+            : 'Execution Prep'
+      applyStaged(staged, entity)
+    },
+    [applyStaged],
+  )
+
+  const onStageActivityDraft = useCallback(
+    (draft: TicketDraft) => {
+      applyStaged(
+        {
+          ...draft,
+          reason: `Activity Stage · ${draft.symbol} · confirm still required`,
+          stagedBy: 'alert',
+          stagedAt: new Date().toISOString(),
+        },
+        'Alert Watch',
+      )
     },
     [applyStaged],
   )
@@ -541,6 +563,7 @@ function App() {
             killed={killed}
             focusedAgent={focusedAgent}
             loopCount={swarm.loopCount}
+            scanHits={swarm.scanHits}
             refreshing={live.refreshing}
             onRefreshBook={() => {
               void live.refreshBook()
@@ -550,6 +573,7 @@ function App() {
             }
             onPickSymbol={pickSymbol}
             onStageIdea={onStageIdea}
+            onStageActivityDraft={onStageActivityDraft}
           />
         )}
         {surface === 'research' && (
@@ -557,6 +581,9 @@ function App() {
             deskBrief={swarm.deskBrief}
             briefs={swarm.briefs}
             optionIdeas={boardIdeas}
+            researchDepth={swarm.researchDepth}
+            focusSymbol={ticket.symbol}
+            onPickSymbol={pickSymbol}
           />
         )}
         {surface === 'risk' && (
